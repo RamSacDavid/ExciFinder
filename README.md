@@ -19,6 +19,7 @@ Para ejecutar este proyecto en un entorno local de R o RStudio, asegúrese de te
 ```r
 install.packages(c("shiny", "shinydashboard", "httr", "jsonlite", 
                    "dplyr", "tidyr", "DT", "stringi", "pdftools", "openxlsx"))
+```
 
 ## Agradecimientos
 
