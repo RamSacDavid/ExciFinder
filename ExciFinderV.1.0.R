@@ -24,10 +24,9 @@ ui <- dashboardPage(
   header = dashboardHeader(title = "ExciFinder v.1.0"),
   sidebar = dashboardSidebar(
     div(style="padding: 15px;", 
-        textInput("pa", "Principio Activo:", value = "Trimetoprim"),
-        textInput("excipiente", "Excipiente:", value = "Alcohol bencilico"),
+        textInput("pa", "Principio Activo:", value = ""),
+        textInput("excipiente", "Excipiente:", value = ""),
         numericInput("limite", "Máx. Medicamentos:", value = 15, min = 1, max = 50),
-        
         br(),
         actionButton("buscar", "BUSCAR", icon = icon("search"), 
                      style="background-color: #004EB3; color: white; border: none; font-weight: bold; width: 100%; height: 40px;"),
