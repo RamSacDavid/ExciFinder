@@ -74,8 +74,9 @@ make_artifact_source_fake <- function(artifact, content) {
         application_env$new_port_absent()
       }
     },
-    get_source_content = function(source_artifact_id) {
-      if (identical(source_artifact_id, artifact$id)) {
+    get_source_content = function(source_artifact_id, section = NULL) {
+      if (identical(source_artifact_id, artifact$id) &&
+          identical(section, content$section)) {
         content
       } else {
         application_env$new_port_absent()
@@ -144,7 +145,8 @@ test_that("artifact source ports can return document artifacts", {
   content <- application_env$new_source_content(
     source_artifact_id = artifact$id,
     content = "Example document text",
-    content_type = "text/plain"
+    content_type = "text/plain",
+    retrieval_method = "method-a"
   )
   port <- make_artifact_source_fake(artifact, content)
 
@@ -168,13 +170,93 @@ test_that("artifact source ports can return structured artifacts", {
   content <- application_env$new_source_content(
     source_artifact_id = artifact$id,
     content = "normalized structured content",
-    content_type = "application/structured-record"
+    content_type = "application/structured-record",
+    retrieval_method = "method-a"
   )
   port <- make_artifact_source_fake(artifact, content)
 
   expect_s3_class(port$get_source_artifact(artifact$id), "source_artifact")
   expect_equal(port$get_source_artifact(artifact$id)$artifact_type, "structured_record")
   expect_s3_class(port$get_source_content(artifact$id), "source_content")
+})
+
+test_that("source content distinguishes full and section materializations", {
+  full_content <- application_env$new_source_content(
+    source_artifact_id = "artifact-1",
+    content = "Complete content",
+    content_type = "text/plain",
+    section = NULL,
+    retrieval_method = "method-a"
+  )
+  section_content <- application_env$new_source_content(
+    source_artifact_id = "artifact-1",
+    content = "Section content",
+    content_type = "text/plain",
+    section = "6.1",
+    retrieval_method = "method-b"
+  )
+  another_section <- application_env$new_source_content(
+    source_artifact_id = "artifact-1",
+    content = "Other section content",
+    content_type = "text/plain",
+    section = "4.4",
+    retrieval_method = "method-b"
+  )
+
+  expect_null(full_content$section)
+  expect_identical(full_content$retrieval_method, "method-a")
+  expect_identical(section_content$section, "6.1")
+  expect_identical(section_content$retrieval_method, "method-b")
+  expect_identical(section_content$source_artifact_id, another_section$source_artifact_id)
+  expect_error(
+    application_env$new_source_content("artifact-1", "text", "text/plain"),
+    "retrieval_method"
+  )
+  expect_error(
+    application_env$new_source_content(
+      "artifact-1", "text", "text/plain", retrieval_method = ""
+    ),
+    "retrieval_method"
+  )
+  expect_error(
+    application_env$new_source_content(
+      "artifact-1", "text", "text/plain", section = "", retrieval_method = "method-a"
+    ),
+    "section"
+  )
+  expect_false(any(c(
+    "complete", "exhaustive", "absence_verified", "coverage", "scope_verified"
+  ) %in% names(section_content)))
+})
+
+test_that("artifact source ports accept full and section content requests", {
+  artifact <- domain_env$new_source_artifact(
+    id = "artifact-1",
+    source = "authority",
+    subject_id = "formulation-001",
+    artifact_type = "document"
+  )
+  full_content <- application_env$new_source_content(
+    "artifact-1", "Complete content", "text/plain", retrieval_method = "method-a"
+  )
+  section_content <- application_env$new_source_content(
+    "artifact-1", "Section content", "text/plain", section = "6.1",
+    retrieval_method = "method-b"
+  )
+  port <- application_env$new_source_artifact_port(
+    list_source_artifacts = function(subject_id, artifact_type = NULL) list(artifact),
+    get_source_artifact = function(source_artifact_id) artifact,
+    get_source_content = function(source_artifact_id, section = NULL) {
+      if (!identical(source_artifact_id, artifact$id)) {
+        return(application_env$new_port_absent())
+      }
+      if (is.null(section)) full_content else if (identical(section, "6.1")) section_content else application_env$new_port_absent()
+    }
+  )
+
+  expect_identical(port$get_source_content("artifact-1"), full_content)
+  expect_identical(port$get_source_content("artifact-1", section = "6.1"), section_content)
+  expect_true(application_env$is_port_absent(port$get_source_content("artifact-1", "4.4")))
 })
 
 test_that("composition source ports return source entries, not canonical concepts", {
@@ -224,13 +306,24 @@ test_that("catalog repository ports are independent from other repositories", {
 })
 
 test_that("artifact repository ports are independent from other repositories", {
+  stored_content <- list()
+  content_key <- function(source_artifact_id, section) {
+    paste(source_artifact_id, if (is.null(section)) "<full>" else section, sep = "::")
+  }
   no_value <- function(...) application_env$new_port_absent()
   ignore_value <- function(...) invisible(NULL)
   repository <- application_env$new_artifact_repository_port(
     get_artifact = no_value,
     put_artifact = ignore_value,
-    get_source_content = no_value,
-    put_source_content = ignore_value
+    get_source_content = function(source_artifact_id, section = NULL) {
+      key <- content_key(source_artifact_id, section)
+      if (key %in% names(stored_content)) stored_content[[key]] else application_env$new_port_absent()
+    },
+    put_source_content = function(source_content) {
+      key <- content_key(source_content$source_artifact_id, source_content$section)
+      stored_content[[key]] <<- source_content
+      invisible(source_content)
+    }
   )
 
   expect_true(application_env$is_artifact_repository_port(repository))
@@ -242,6 +335,14 @@ test_that("artifact repository ports are independent from other repositories", {
     )
   )
   expect_true(application_env$is_port_absent(repository$get_artifact("artifact-001")))
+  content <- application_env$new_source_content(
+    "artifact-001", "Section content", "text/plain", section = "6.1",
+    retrieval_method = "method-b"
+  )
+  expect_true(application_env$is_port_absent(repository$get_source_content("artifact-001", "6.1")))
+  repository$put_source_content(content)
+  expect_identical(repository$get_source_content("artifact-001", "6.1"), content)
+  expect_error(repository$put_source_content("not content"), "source_content")
 })
 
 test_that("assessment repository ports accept only their two operations", {

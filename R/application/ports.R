@@ -54,6 +54,8 @@ new_source_content <- function(
     source_artifact_id,
     content,
     content_type,
+    section = NULL,
+    retrieval_method,
     retrieved_at = NULL,
     content_hash = NULL) {
   .port_assert_non_empty_string(source_artifact_id, "source_artifact_id")
@@ -61,13 +63,18 @@ new_source_content <- function(
     .port_abort("`content` must be a single, non-missing character string.")
   }
   .port_assert_non_empty_string(content_type, "content_type")
+  .port_assert_optional_string(section, "section")
+  .port_assert_non_empty_string(retrieval_method, "retrieval_method")
   .port_assert_optional_string(content_hash, "content_hash")
 
+  # Successful content retrieval does not by itself establish formulation-level verification coverage.
   structure(
     list(
       source_artifact_id = source_artifact_id,
       content = content,
       content_type = content_type,
+      section = section,
+      retrieval_method = retrieval_method,
       retrieved_at = retrieved_at,
       content_hash = content_hash
     ),
@@ -155,7 +162,11 @@ new_source_artifact_port <- function(
     list(
       list_source_artifacts = list_source_artifacts,
       get_source_artifact = get_source_artifact,
-      get_source_content = get_source_content
+      get_source_content = function(source_artifact_id, section = NULL) {
+        .port_assert_non_empty_string(source_artifact_id, "source_artifact_id")
+        .port_assert_optional_string(section, "section")
+        get_source_content(source_artifact_id, section)
+      }
     ),
     "source_artifact_port"
   )
@@ -224,6 +235,18 @@ new_artifact_repository_port <- function(
 
   for (operation_name in names(operations)) {
     .port_assert_function(operations[[operation_name]], operation_name)
+  }
+
+  operations$get_source_content <- function(source_artifact_id, section = NULL) {
+    .port_assert_non_empty_string(source_artifact_id, "source_artifact_id")
+    .port_assert_optional_string(section, "section")
+    get_source_content(source_artifact_id, section)
+  }
+  operations$put_source_content <- function(source_content) {
+    if (!is_source_content(source_content)) {
+      .port_abort("`source_content` must be a `source_content` object.")
+    }
+    put_source_content(source_content)
   }
 
   .new_port(operations, "artifact_repository_port")

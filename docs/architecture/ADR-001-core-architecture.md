@@ -62,6 +62,10 @@ SourceArtifact
 └── document
 ```
 
+`SourceArtifact` represents provenance and versioning. `SourceContent` is an
+application DTO for a materialized full or section-specific representation of
+that artifact, carrying an optional section and the retrieval method used.
+
 Administration-route cardinality must be preserved rather than concatenated or
 reduced to one value. Structured active-ingredient composition must likewise
 remain ordered components rather than being reduced to ingredient names.
