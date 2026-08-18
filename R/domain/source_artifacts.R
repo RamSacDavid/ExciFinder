@@ -2,11 +2,13 @@ source_artifact_types <- function() {
   c("structured_record", "document")
 }
 
+# artifact_type is the representation class; artifact_kind is the semantic role/content.
 new_source_artifact <- function(
     id,
     source,
     subject_id,
     artifact_type,
+    artifact_kind,
     url = NULL,
     source_date = NULL,
     retrieved_at = NULL,
@@ -23,6 +25,7 @@ new_source_artifact <- function(
       paste(source_artifact_types(), collapse = ", ")
     ))
   }
+  .domain_assert_non_empty_string(artifact_kind, "artifact_kind")
   .domain_assert_optional_string(url, "url")
   .domain_assert_optional_string(version, "version")
   .domain_assert_optional_string(content_hash, "content_hash")
@@ -34,6 +37,7 @@ new_source_artifact <- function(
       source = source,
       subject_id = subject_id,
       artifact_type = artifact_type,
+      artifact_kind = artifact_kind,
       url = url,
       source_date = source_date,
       retrieved_at = retrieved_at,

@@ -47,7 +47,7 @@ HTTP, JSON, PDF, or storage. Domain code must not depend on adapters or UI.
 | `Formulation` | The composition-relevant level between `MedicinalProduct` and `Presentation`; one formulation can serve multiple presentations and preserves `routes` with cardinality 0..N. Its definitive identity is intentionally deferred pending CIMA data analysis. |
 | `Presentation` | Concrete commercial presentation; preferred identity is `authority + codigo_nacional`. It is not interchangeable with `Formulation`, and authorization status is separate from marketing availability. |
 | `Excipient` | Canonical concept independent of CIMA with a stable internal ID, canonical name, controlled synonyms, linguistic variants, E codes, future families/relations, and regulatory references. |
-| `SourceArtifact` | Official versionable, traceable provenance unit: either a `structured_record` or a `document`. |
+| `SourceArtifact` | Official versionable, traceable provenance unit with a representation class (`artifact_type`) and semantic role (`artifact_kind`). |
 | `ExcipientEvidence` | Concrete identification evidence: excipient, matching term, `source_artifact_id`, section when applicable, excerpt, method, and location when available. |
 | `VerificationAttempt` | Value object recording `source`, `source_artifact_id`, `method`, `section`, `retrieved_at`, `outcome`, `extraction_status`, `error`, and nested `evidence`. |
 | `ExcipientAssessment` | Factual conclusion for a formulation or product and an excipient; references the subject, coverage, attempts, technical errors, matcher version, and taxonomy version. Evidence remains nested in attempts. |
@@ -65,6 +65,11 @@ SourceArtifact
 `SourceArtifact` represents provenance and versioning. `SourceContent` is an
 application DTO for a materialized full or section-specific representation of
 that artifact, carrying an optional section and the retrieval method used.
+
+`artifact_type` is the representation class (`structured_record` or
+`document`); `artifact_kind` is its semantic role. Initial canonical kinds
+include `medicinal_product_record`, `summary_of_product_characteristics`,
+`package_leaflet`, `public_assessment_report`, and `risk_management_plan`.
 
 Administration-route cardinality must be preserved rather than concatenated or
 reduced to one value. Structured active-ingredient composition must likewise

@@ -223,6 +223,7 @@ map_cima_structured_source_artifact <- function(
     source = "AEMPS:CIMA",
     subject_id = formulation_id,
     artifact_type = "structured_record",
+    artifact_kind = "medicinal_product_record",
     retrieved_at = retrieved_at
   )
 }

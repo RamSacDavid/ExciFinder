@@ -147,6 +147,7 @@ test_that("CIMA structured artifact identifies a deterministic snapshot", {
     "AEMPS:CIMA:medicine:10001:structured:"
   ))
   expect_identical(same_snapshot$artifact_type, "structured_record")
+  expect_identical(same_snapshot$artifact_kind, "medicinal_product_record")
   expect_identical(same_snapshot$subject_id, "AEMPS:10001:formulation:1")
   expect_identical(same_snapshot$retrieved_at, retrieved_at)
   expect_null(same_snapshot$source_date)

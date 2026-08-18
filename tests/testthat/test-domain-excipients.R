@@ -22,12 +22,14 @@ test_that("document source artifacts accept partial traceability metadata", {
     source = "official-source",
     subject_id = "opaque-formulation-id",
     artifact_type = "document",
+    artifact_kind = "summary_of_product_characteristics",
     retrieved_at = as.POSIXct("2026-01-01", tz = "UTC"),
     language = "es"
   )
 
   expect_s3_class(artifact, "source_artifact")
   expect_equal(artifact$artifact_type, "document")
+  expect_equal(artifact$artifact_kind, "summary_of_product_characteristics")
   expect_null(artifact$url)
   expect_null(artifact$source_date)
 })
@@ -38,11 +40,13 @@ test_that("structured source artifacts can omit document metadata", {
     source = "official-source",
     subject_id = "opaque-formulation-id",
     artifact_type = "structured_record",
+    artifact_kind = "medicinal_product_record",
     version = "record-version-1"
   )
 
   expect_s3_class(artifact, "source_artifact")
   expect_equal(artifact$artifact_type, "structured_record")
+  expect_equal(artifact$artifact_kind, "medicinal_product_record")
   expect_null(artifact$url)
   expect_error(
     domain_env$new_source_artifact(
@@ -50,6 +54,21 @@ test_that("structured source artifacts can omit document metadata", {
     ),
     "artifact_type"
   )
+})
+
+test_that("source artifact kinds are mandatory and remain open", {
+  expect_error(
+    domain_env$new_source_artifact(
+      "artifact-empty-kind", "official-source", "subject-001", "document", ""
+    ),
+    "artifact_kind"
+  )
+  artifact <- domain_env$new_source_artifact(
+    "artifact-future-kind", "official-source", "subject-001", "document",
+    "regulatory_addendum"
+  )
+
+  expect_identical(artifact$artifact_kind, "regulatory_addendum")
 })
 
 test_that("document evidence keeps section references and text", {

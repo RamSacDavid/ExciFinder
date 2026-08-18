@@ -140,7 +140,8 @@ test_that("artifact source ports can return document artifacts", {
     id = "artifact-document-001",
     source = "authority",
     subject_id = "formulation-001",
-    artifact_type = "document"
+    artifact_type = "document",
+    artifact_kind = "summary_of_product_characteristics"
   )
   content <- application_env$new_source_content(
     source_artifact_id = artifact$id,
@@ -165,6 +166,7 @@ test_that("artifact source ports can return structured artifacts", {
     source = "authority",
     subject_id = "formulation-001",
     artifact_type = "structured_record",
+    artifact_kind = "medicinal_product_record",
     version = "record-version-1"
   )
   content <- application_env$new_source_content(
@@ -234,7 +236,8 @@ test_that("artifact source ports accept full and section content requests", {
     id = "artifact-1",
     source = "authority",
     subject_id = "formulation-001",
-    artifact_type = "document"
+    artifact_type = "document",
+    artifact_kind = "summary_of_product_characteristics"
   )
   full_content <- application_env$new_source_content(
     "artifact-1", "Complete content", "text/plain", retrieval_method = "method-a"
