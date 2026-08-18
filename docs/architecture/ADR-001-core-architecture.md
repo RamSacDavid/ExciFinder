@@ -42,9 +42,10 @@ HTTP, JSON, PDF, or storage. Domain code must not depend on adapters or UI.
 
 | Concept | Purpose and identity |
 |---|---|
-| `MedicinalProduct` | Authorized medicinal product; initial identity is `authority + nregistro`. |
-| `Formulation` | The composition-relevant level between `MedicinalProduct` and `Presentation`; one formulation can serve multiple presentations. Its definitive identity is intentionally deferred pending CIMA data analysis. |
-| `Presentation` | Concrete commercial presentation; preferred identity is `authority + codigo_nacional`. It is not interchangeable with `Formulation`. |
+| `MedicinalProduct` | Authorized medicinal product; initial identity is `authority + nregistro`. Authorization status and marketing availability are separate dimensions. |
+| `ActiveIngredientComponent` | Ordered canonical active-ingredient component preserving name and optional quantity, unit, and position without source-specific identifiers. |
+| `Formulation` | The composition-relevant level between `MedicinalProduct` and `Presentation`; one formulation can serve multiple presentations and preserves `routes` with cardinality 0..N. Its definitive identity is intentionally deferred pending CIMA data analysis. |
+| `Presentation` | Concrete commercial presentation; preferred identity is `authority + codigo_nacional`. It is not interchangeable with `Formulation`, and authorization status is separate from marketing availability. |
 | `Excipient` | Canonical concept independent of CIMA with a stable internal ID, canonical name, controlled synonyms, linguistic variants, E codes, future families/relations, and regulatory references. |
 | `SourceArtifact` | Official versionable, traceable provenance unit: either a `structured_record` or a `document`. |
 | `ExcipientEvidence` | Concrete identification evidence: excipient, matching term, `source_artifact_id`, section when applicable, excerpt, method, and location when available. |
@@ -60,6 +61,10 @@ SourceArtifact
 ├── structured_record
 └── document
 ```
+
+Administration-route cardinality must be preserved rather than concatenated or
+reduced to one value. Structured active-ingredient composition must likewise
+remain ordered components rather than being reduced to ingredient names.
 
 ## Verification semantics
 

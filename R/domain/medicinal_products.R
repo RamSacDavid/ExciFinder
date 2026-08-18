@@ -17,6 +17,28 @@
   invisible(value)
 }
 
+.domain_assert_optional_logical_scalar <- function(value, name) {
+  if (!is.null(value) &&
+      (!is.logical(value) || length(value) != 1L || is.na(value))) {
+    .domain_abort(sprintf(
+      "`%s` must be NULL or a single, non-missing logical value.",
+      name
+    ))
+  }
+  invisible(value)
+}
+
+.domain_assert_optional_integer_scalar <- function(value, name) {
+  if (!is.null(value) &&
+      (!is.integer(value) || length(value) != 1L || is.na(value))) {
+    .domain_abort(sprintf(
+      "`%s` must be NULL or a single, non-missing integer value.",
+      name
+    ))
+  }
+  invisible(value)
+}
+
 .domain_character_collection <- function(value, name) {
   if (is.null(value)) {
     return(character())
@@ -53,25 +75,49 @@
   structure(fields, class = c(class_name, "excifinder_domain_object"))
 }
 
+new_active_ingredient_component <- function(
+    name,
+    quantity = NULL,
+    unit = NULL,
+    position = NULL) {
+  .domain_assert_non_empty_string(name, "name")
+  .domain_assert_optional_string(quantity, "quantity")
+  .domain_assert_optional_string(unit, "unit")
+  .domain_assert_optional_integer_scalar(position, "position")
+
+  .new_domain_object(
+    list(
+      name = name,
+      quantity = quantity,
+      unit = unit,
+      position = position
+    ),
+    "active_ingredient_component"
+  )
+}
+
 new_medicinal_product <- function(
     authority,
     registration_number,
     name,
-    active_ingredients = character(),
+    active_ingredients = list(),
     marketing_authorisation_holder = NULL,
-    marketing_status = NULL) {
+    authorization_status = NULL,
+    is_marketed = NULL) {
   .domain_assert_non_empty_string(authority, "authority")
   .domain_assert_non_empty_string(registration_number, "registration_number")
   .domain_assert_non_empty_string(name, "name")
-  active_ingredients <- .domain_character_collection(
+  active_ingredients <- .domain_object_collection(
     active_ingredients,
+    "active_ingredient_component",
     "active_ingredients"
   )
   .domain_assert_optional_string(
     marketing_authorisation_holder,
     "marketing_authorisation_holder"
   )
-  .domain_assert_optional_string(marketing_status, "marketing_status")
+  .domain_assert_optional_string(authorization_status, "authorization_status")
+  .domain_assert_optional_logical_scalar(is_marketed, "is_marketed")
 
   .new_domain_object(
     list(
@@ -80,7 +126,8 @@ new_medicinal_product <- function(
       name = name,
       active_ingredients = active_ingredients,
       marketing_authorisation_holder = marketing_authorisation_holder,
-      marketing_status = marketing_status
+      authorization_status = authorization_status,
+      is_marketed = is_marketed
     ),
     "medicinal_product"
   )
@@ -95,7 +142,7 @@ new_formulation <- function(
     id,
     medicinal_product_id,
     pharmaceutical_form = NULL,
-    route = NULL,
+    routes = character(),
     strength = NULL) {
   .domain_assert_non_empty_string(id, "id")
   .domain_assert_non_empty_string(
@@ -103,7 +150,7 @@ new_formulation <- function(
     "medicinal_product_id"
   )
   .domain_assert_optional_string(pharmaceutical_form, "pharmaceutical_form")
-  .domain_assert_optional_string(route, "route")
+  routes <- .domain_character_collection(routes, "routes")
   .domain_assert_optional_string(strength, "strength")
 
   .new_domain_object(
@@ -111,7 +158,7 @@ new_formulation <- function(
       id = id,
       medicinal_product_id = medicinal_product_id,
       pharmaceutical_form = pharmaceutical_form,
-      route = route,
+      routes = routes,
       strength = strength
     ),
     "formulation"
@@ -123,12 +170,14 @@ new_presentation <- function(
     national_code,
     formulation_id,
     description,
-    marketing_status = NULL) {
+    authorization_status = NULL,
+    is_marketed = NULL) {
   .domain_assert_non_empty_string(authority, "authority")
   .domain_assert_non_empty_string(national_code, "national_code")
   .domain_assert_non_empty_string(formulation_id, "formulation_id")
   .domain_assert_non_empty_string(description, "description")
-  .domain_assert_optional_string(marketing_status, "marketing_status")
+  .domain_assert_optional_string(authorization_status, "authorization_status")
+  .domain_assert_optional_logical_scalar(is_marketed, "is_marketed")
 
   .new_domain_object(
     list(
@@ -136,7 +185,8 @@ new_presentation <- function(
       national_code = national_code,
       formulation_id = formulation_id,
       description = description,
-      marketing_status = marketing_status
+      authorization_status = authorization_status,
+      is_marketed = is_marketed
     ),
     "presentation"
   )

@@ -1,9 +1,10 @@
 make_port_product <- function(registration_number = "10001") {
+  active_ingredient <- domain_env$new_active_ingredient_component("ingredient")
   domain_env$new_medicinal_product(
     authority = "authority",
     registration_number = registration_number,
     name = paste("Product", registration_number),
-    active_ingredients = "ingredient"
+    active_ingredients = list(active_ingredient)
   )
 }
 
