@@ -15,6 +15,10 @@ library(openxlsx)
 
 cache_pdf <- new.env(parent = emptyenv())
 
+source("R/text_normalization.R", local = TRUE)
+source("R/cima_legacy.R", local = TRUE)
+source("R/excipient_search_legacy.R", local = TRUE)
+
 ui <- dashboardPage(
   header = dashboardHeader(title = "ExciFinder v.1.0"),
   sidebar = dashboardSidebar(
@@ -81,55 +85,15 @@ ui <- dashboardPage(
 )
 
 server <- function(input, output, session) {
-  
-  normalizar <- function(texto) {
-    if (is.null(texto) || length(texto) == 0 || texto == "") return("")
-    texto <- gsub("<[^>]*>", " ", texto)
-    texto <- stri_trans_general(tolower(texto), "Latin-ASCII")
-    texto <- gsub("z", "c", texto)
-    return(texto)
-  }
-  
   data_final <- eventReactive(input$buscar, {
     req(input$pa, input$excipiente)
     
-    res_pa <- GET("https://cima.aemps.es/cima/rest/medicamentos", query = list(practiv1 = input$pa))
-    if (status_code(res_pa) != 200) return(NULL)
-    meds <- fromJSON(rawToChar(res_pa$content))$resultados %>% head(input$limite)
-    
-    term_busqueda <- normalizar(input$excipiente)
-    
-    withProgress(message = 'Consultando CIMA...', value = 0, {
-      results <- lapply(1:nrow(meds), function(i) {
-        incProgress(1/nrow(meds), detail = "Analizando PDF de ficha técnica de CIMA AEMPS")
-        nreg <- meds$nregistro[i]
-        doc_ft <- meds$docs[[i]] %>% filter(tipo == 1)
-        pdf_url <- if(nrow(doc_ft) > 0) doc_ft$url[1] else "#"
-        
-        found <- FALSE
-        if (exists(nreg, envir = cache_pdf)) {
-          if (grepl(term_busqueda, get(nreg, envir = cache_pdf))) found <- TRUE
-        } else {
-          url_doc <- paste0("https://cima.aemps.es/cima/rest/docSegmentado/contenido/1?nregistro=", nreg)
-          res_doc <- GET(url_doc)
-          txt <- ""
-          if (status_code(res_doc) == 200) {
-            sec61 <- fromJSON(rawToChar(res_doc$content)) %>% filter(seccion == "6.1")
-            if (nrow(sec61) > 0) txt <- normalizar(sec61$contenido)
-          }
-          if (!grepl(term_busqueda, txt) && pdf_url != "#") {
-            try({
-              pdf_txt <- normalizar(paste(pdftools::pdf_text(pdf_url), collapse = " "))
-              txt <- paste(txt, pdf_txt)
-            }, silent = TRUE)
-          }
-          assign(nreg, txt, envir = cache_pdf)
-          if (grepl(term_busqueda, txt)) found <- TRUE
-        }
-        return(data.frame(nombre = meds$nombre[i], estado = found, url = pdf_url))
-      })
-    })
-    bind_rows(results) %>% arrange(nombre)
+    buscar_excipiente_legacy(
+      input$pa,
+      input$excipiente,
+      input$limite,
+      cache_pdf
+    )
   })
   
   output$tabla_si <- renderDT({

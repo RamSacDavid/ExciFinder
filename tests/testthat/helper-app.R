@@ -15,9 +15,17 @@ project_root <- function() {
 app_path <- file.path(project_root(), "app.R")
 fixtures_path <- file.path(project_root(), "tests", "fixtures", "cima")
 
+source_app <- function(app_env) {
+  original_directory <- getwd()
+  on.exit(setwd(original_directory), add = TRUE)
+  setwd(project_root())
+
+  source(app_path, local = app_env)
+}
+
 load_app <- function() {
   app_env <- new.env(parent = globalenv())
-  sys.source(app_path, envir = app_env)
+  source_app(app_env)
   app_env
 }
 

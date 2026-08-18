@@ -8,7 +8,7 @@ test_that("app.R parses and loads without a CIMA request", {
     envir = app_env
   )
 
-  loaded <- expect_no_error(source(app_path, local = app_env))
+  loaded <- expect_no_error(source_app(app_env))
   expect_s3_class(loaded$value, "shiny.appobj")
   expect_true(exists("ui", envir = app_env, inherits = FALSE))
   expect_true(exists("server", envir = app_env, inherits = FALSE))

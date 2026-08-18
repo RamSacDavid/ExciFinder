@@ -16,9 +16,7 @@ test_that("z is transformed to c in the current normalizer", {
   # KNOWN BASELINE BEHAVIOUR — scheduled for deliberate replacement
   app_env <- load_app()
 
-  shiny::testServer(app_env$server, {
-    expect_equal(normalizar("Zinc"), "cinc")
-  })
+  expect_equal(app_env$normalizar("Zinc"), "cinc")
 })
 
 test_that("a readable source without the term is classified as absent", {
