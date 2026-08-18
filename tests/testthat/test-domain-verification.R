@@ -6,7 +6,7 @@ make_domain_evidence <- function(
     id = id,
     excipient_id = excipient_id,
     subject_id = subject_id,
-    document_id = "document-001",
+    source_artifact_id = "artifact-001",
     matched_term = "lactose",
     section = "6.1",
     excerpt = "Contains lactose",
@@ -20,7 +20,7 @@ test_that("verification attempts accept every extraction status", {
   for (status in domain_env$verification_extraction_statuses()) {
     attempt <- domain_env$new_verification_attempt(
       source = "official-source",
-      document_id = "document-001",
+      source_artifact_id = "artifact-001",
       method = "structured-section",
       outcome = "evidence_found",
       extraction_status = status,
@@ -44,7 +44,7 @@ test_that("verification attempts validate their evidence collection", {
   evidence <- make_domain_evidence()
   attempt <- domain_env$new_verification_attempt(
     source = "official-source",
-    document_id = "document-001",
+    source_artifact_id = "artifact-001",
     outcome = "evidence_found",
     extraction_status = "complete",
     evidence = list(evidence)
@@ -60,6 +60,34 @@ test_that("verification attempts validate their evidence collection", {
     ),
     "excipient_evidence"
   )
+})
+
+test_that("verification attempts reject evidence from another artifact", {
+  evidence <- make_domain_evidence()
+
+  expect_error(
+    domain_env$new_verification_attempt(
+      source = "official-source",
+      source_artifact_id = "artifact-other",
+      outcome = "evidence_found",
+      extraction_status = "complete",
+      evidence = list(evidence)
+    ),
+    "source_artifact_id"
+  )
+})
+
+test_that("failed verification attempts can exist without an artifact", {
+  attempt <- domain_env$new_verification_attempt(
+    source = "official-source",
+    outcome = "inconclusive",
+    extraction_status = "failed",
+    error = list(code = "source_unavailable")
+  )
+
+  expect_s3_class(attempt, "verification_attempt")
+  expect_null(attempt$source_artifact_id)
+  expect_length(attempt$evidence, 0L)
 })
 
 test_that("assessments accept all conclusions and coverage values", {
@@ -121,7 +149,7 @@ test_that("assessments validate attempts and derive their evidence", {
   evidence <- make_domain_evidence()
   attempt <- domain_env$new_verification_attempt(
     source = "official-source",
-    document_id = "document-001",
+    source_artifact_id = "artifact-001",
     outcome = "evidence_found",
     extraction_status = "complete",
     evidence = list(evidence)
@@ -150,12 +178,14 @@ test_that("assessment evidence aggregates attempts in stable order", {
   second <- make_domain_evidence("evidence-002")
   first_attempt <- domain_env$new_verification_attempt(
     source = "structured-source",
+    source_artifact_id = "artifact-001",
     outcome = "evidence_found",
     extraction_status = "complete",
     evidence = list(first)
   )
   second_attempt <- domain_env$new_verification_attempt(
-    source = "pdf-source",
+    source = "document-source",
+    source_artifact_id = "artifact-001",
     outcome = "evidence_found",
     extraction_status = "complete",
     evidence = list(second)
@@ -188,12 +218,14 @@ test_that("assessment evidence deduplicates repeated evidence IDs", {
   evidence <- make_domain_evidence("evidence-001")
   first_attempt <- domain_env$new_verification_attempt(
     source = "structured-source",
+    source_artifact_id = "artifact-001",
     outcome = "evidence_found",
     extraction_status = "complete",
     evidence = list(evidence)
   )
   second_attempt <- domain_env$new_verification_attempt(
-    source = "pdf-source",
+    source = "document-source",
+    source_artifact_id = "artifact-001",
     outcome = "evidence_found",
     extraction_status = "complete",
     evidence = list(evidence)
@@ -212,12 +244,14 @@ test_that("assessments reject evidence for another subject or excipient", {
   wrong_excipient <- make_domain_evidence(excipient_id = "excipient-002")
   subject_attempt <- domain_env$new_verification_attempt(
     source = "official-source",
+    source_artifact_id = "artifact-001",
     outcome = "evidence_found",
     extraction_status = "complete",
     evidence = list(wrong_subject)
   )
   excipient_attempt <- domain_env$new_verification_attempt(
     source = "official-source",
+    source_artifact_id = "artifact-001",
     outcome = "evidence_found",
     extraction_status = "complete",
     evidence = list(wrong_excipient)

@@ -46,11 +46,20 @@ HTTP, JSON, PDF, or storage. Domain code must not depend on adapters or UI.
 | `Formulation` | The composition-relevant level between `MedicinalProduct` and `Presentation`; one formulation can serve multiple presentations. Its definitive identity is intentionally deferred pending CIMA data analysis. |
 | `Presentation` | Concrete commercial presentation; preferred identity is `authority + codigo_nacional`. It is not interchangeable with `Formulation`. |
 | `Excipient` | Canonical concept independent of CIMA with a stable internal ID, canonical name, controlled synonyms, linguistic variants, E codes, future families/relations, and regulatory references. |
-| `SourceDocument` | Official versionable, traceable document. |
-| `ExcipientEvidence` | Concrete identification evidence: excipient, matching term, document, section, excerpt, method, and location when available. |
-| `VerificationAttempt` | Value object recording `source`, `document_id`, `method`, `section`, `retrieved_at`, `outcome`, `extraction_status`, `error`, and `evidence`. |
-| `ExcipientAssessment` | Factual conclusion for a formulation or product and an excipient; references the subject, coverage, attempts, evidence, technical errors, matcher version, and taxonomy version. |
+| `SourceArtifact` | Official versionable, traceable provenance unit: either a `structured_record` or a `document`. |
+| `ExcipientEvidence` | Concrete identification evidence: excipient, matching term, `source_artifact_id`, section when applicable, excerpt, method, and location when available. |
+| `VerificationAttempt` | Value object recording `source`, `source_artifact_id`, `method`, `section`, `retrieved_at`, `outcome`, `extraction_status`, `error`, and nested `evidence`. |
+| `ExcipientAssessment` | Factual conclusion for a formulation or product and an excipient; references the subject, coverage, attempts, technical errors, matcher version, and taxonomy version. Evidence remains nested in attempts. |
 | `SearchResult` | Application DTO, not a central persistent entity. |
+
+`SourceArtifact` distinguishes provenance without requiring every source to be a
+document:
+
+```text
+SourceArtifact
+├── structured_record
+└── document
+```
 
 ## Verification semantics
 
@@ -101,6 +110,12 @@ be versioned and validated independently.
 - Use named lists of functions for ports.
 - Use structured R conditions for errors.
 - Use R6 only if a concrete future mutable-state requirement justifies it.
+
+`SourceArtifactPort` retrieves artifact provenance and content.
+`CompositionSourcePort` exposes source-native composition as
+`SourceExcipientEntry` application DTOs. These entries are not canonical
+`Excipient` objects and do not perform resolution or matching. Evidence refers
+to its provenance through `source_artifact_id`.
 
 Repositories start behind ports and may initially use memory. SQLite, DuckDB,
 or another persistent implementation can later replace that adapter without

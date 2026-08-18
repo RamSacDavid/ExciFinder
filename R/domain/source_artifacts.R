@@ -1,10 +1,14 @@
-new_source_document <- function(
+source_artifact_types <- function() {
+  c("structured_record", "document")
+}
+
+new_source_artifact <- function(
     id,
     source,
     subject_id,
-    document_type,
+    artifact_type,
     url = NULL,
-    document_date = NULL,
+    source_date = NULL,
     retrieved_at = NULL,
     version = NULL,
     content_hash = NULL,
@@ -12,7 +16,13 @@ new_source_document <- function(
   .domain_assert_non_empty_string(id, "id")
   .domain_assert_non_empty_string(source, "source")
   .domain_assert_non_empty_string(subject_id, "subject_id")
-  .domain_assert_non_empty_string(document_type, "document_type")
+  .domain_assert_non_empty_string(artifact_type, "artifact_type")
+  if (!artifact_type %in% source_artifact_types()) {
+    .domain_abort(sprintf(
+      "`artifact_type` must be one of: %s.",
+      paste(source_artifact_types(), collapse = ", ")
+    ))
+  }
   .domain_assert_optional_string(url, "url")
   .domain_assert_optional_string(version, "version")
   .domain_assert_optional_string(content_hash, "content_hash")
@@ -23,14 +33,14 @@ new_source_document <- function(
       id = id,
       source = source,
       subject_id = subject_id,
-      document_type = document_type,
+      artifact_type = artifact_type,
       url = url,
-      document_date = document_date,
+      source_date = source_date,
       retrieved_at = retrieved_at,
       version = version,
       content_hash = content_hash,
       language = language
     ),
-    "source_document"
+    "source_artifact"
   )
 }

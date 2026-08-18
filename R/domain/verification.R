@@ -24,7 +24,7 @@ assessment_factual_conclusions <- function() {
 
 new_verification_attempt <- function(
     source,
-    document_id = NULL,
+    source_artifact_id = NULL,
     method = NULL,
     section = NULL,
     retrieved_at = NULL,
@@ -33,7 +33,7 @@ new_verification_attempt <- function(
     error = NULL,
     evidence = list()) {
   .domain_assert_non_empty_string(source, "source")
-  .domain_assert_optional_string(document_id, "document_id")
+  .domain_assert_optional_string(source_artifact_id, "source_artifact_id")
   .domain_assert_optional_string(method, "method")
   .domain_assert_optional_string(section, "section")
   outcome <- .domain_match_value(
@@ -54,11 +54,25 @@ new_verification_attempt <- function(
     "excipient_evidence",
     "evidence"
   )
+  if (is.null(source_artifact_id) && length(evidence) > 0L) {
+    .domain_abort(
+      "`source_artifact_id` is required when an attempt contains evidence."
+    )
+  }
+  if (!is.null(source_artifact_id)) {
+    for (attempt_evidence in evidence) {
+      if (!identical(attempt_evidence$source_artifact_id, source_artifact_id)) {
+        .domain_abort(
+          "Evidence source_artifact_id must match the attempt source_artifact_id."
+        )
+      }
+    }
+  }
 
   .new_domain_object(
     list(
       source = source,
-      document_id = document_id,
+      source_artifact_id = source_artifact_id,
       method = method,
       section = section,
       retrieved_at = retrieved_at,
