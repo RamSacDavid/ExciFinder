@@ -1,0 +1,14 @@
+{
+  "resultados": [
+    {
+      "nregistro": "12345",
+      "nombre": "Medicamento de ejemplo 10 mg",
+      "docs": [
+        {
+          "tipo": 1,
+          "url": "#"
+        }
+      ]
+    }
+  ]
+}
