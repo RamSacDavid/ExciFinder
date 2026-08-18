@@ -1,0 +1,23 @@
+{
+  "totalFilas": 3,
+  "pagina": 1,
+  "tamanioPagina": 2,
+  "resultados": [
+    {
+      "nregistro": "10001",
+      "nombre": "MEDICINE ALPHA 10 MG TABLETS",
+      "pactivos": "INGREDIENT ALPHA",
+      "labtitular": "EXAMPLE LAB",
+      "estado": {"aut": 1704067200000},
+      "comerc": true
+    },
+    {
+      "nregistro": "10002",
+      "nombre": "MEDICINE BETA 5 MG TABLETS",
+      "pactivos": "INGREDIENT BETA",
+      "labtitular": "EXAMPLE LAB",
+      "estado": {"aut": 1704067200000},
+      "comerc": false
+    }
+  ]
+}

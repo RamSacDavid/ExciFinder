@@ -1,0 +1,15 @@
+{
+  "totalFilas": 3,
+  "pagina": 2,
+  "tamanioPagina": 2,
+  "resultados": [
+    {
+      "nregistro": "10003",
+      "nombre": "MEDICINE GAMMA 2 MG TABLETS",
+      "pactivos": "INGREDIENT GAMMA",
+      "labtitular": "OTHER LAB",
+      "estado": {"susp": 1711929600000, "aut": 1704067200000},
+      "comerc": false
+    }
+  ]
+}

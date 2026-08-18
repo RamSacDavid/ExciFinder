@@ -1,0 +1,18 @@
+{
+  "nregistro": "10005",
+  "nombre": "MEDICINE WITHOUT STRUCTURED EXCIPIENTS",
+  "labtitular": "EXAMPLE LAB",
+  "estado": {"aut": 1704067200000},
+  "comerc": true,
+  "principiosActivos": [
+    {"nombre": "INGREDIENT DELTA", "cantidad": "20", "unidad": "mg", "orden": 1}
+  ],
+  "excipientes": [],
+  "viasAdministracion": [
+    {"nombre": "Vía oral"}
+  ],
+  "presentaciones": [],
+  "formaFarmaceutica": {"nombre": "Comprimido"},
+  "dosis": "20 mg",
+  "docs": []
+}
