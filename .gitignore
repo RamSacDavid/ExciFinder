@@ -1,0 +1,13 @@
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# renv local library and transient directories
+renv/library/
+renv/staging/
+renv/cache/
+renv/sandbox/
+renv/local/
+
+rsconnect/
