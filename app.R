@@ -2,11 +2,6 @@
 # EXCIFINDER v1.0: VALL D'HEBRON (FINAL VERSION)
 # ============================================================
 
-libs <- c("shiny", "shinydashboard", "httr", "jsonlite", "dplyr", "tidyr", 
-          "DT", "stringi", "pdftools", "openxlsx")
-ins_libs <- libs[!(libs %in% installed.packages()[,"Package"])]
-if(length(ins_libs)) install.packages(ins_libs)
-
 library(shiny)
 library(shinydashboard)
 library(httr)
