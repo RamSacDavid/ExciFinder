@@ -19,6 +19,7 @@ sys.source(
 
 for (application_file in c(
     "excipient_taxonomy.R",
+    "literal_excipient.R",
     "excipient_matching.R",
     "excipient_evidence_builder.R",
     "excipient_assessment_policy.R",

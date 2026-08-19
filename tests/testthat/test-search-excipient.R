@@ -77,9 +77,20 @@ test_that("search service constructor validates every dependency", {
     ),
     "matcher_version"
   )
+  expect_error(
+    application_env$new_excipient_search_service(
+      sources$product_source,
+      sources$composition_source,
+      sources$artifact_source,
+      make_search_taxonomy(),
+      "matcher-1",
+      allow_literal_fallback = NA
+    ),
+    "allow_literal_fallback"
+  )
 })
 
-test_that("ambiguous and not-found queries perform zero source calls", {
+test_that("ambiguous and strict not-found queries perform zero source calls", {
   ambiguous_taxonomy <- make_search_taxonomy(list(
     domain_env$new_excipient("excipient-a", "Alpha", synonyms = "comun"),
     domain_env$new_excipient("excipient-b", "Beta", synonyms = "comun")
@@ -91,7 +102,10 @@ test_that("ambiguous and not-found queries perform zero source calls", {
   )$search_excipient("ingredient", "comun")
 
   not_found_sources <- new_search_fake_sources()
-  not_found <- make_search_service(not_found_sources)$search_excipient(
+  not_found <- make_search_service(
+    not_found_sources,
+    allow_literal_fallback = FALSE
+  )$search_excipient(
     "ingredient",
     "desconocido"
   )

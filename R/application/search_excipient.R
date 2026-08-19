@@ -268,7 +268,8 @@ new_excipient_search_service <- function(
     composition_source,
     artifact_source,
     taxonomy,
-    matcher_version) {
+    matcher_version,
+    allow_literal_fallback = TRUE) {
   if (!is_product_source_port(product_source)) {
     .excipient_application_abort("`product_source` must be a `product_source_port`.")
   }
@@ -284,22 +285,84 @@ new_excipient_search_service <- function(
     .excipient_application_abort("`taxonomy` must be an `excipient_taxonomy` object.")
   }
   .excipient_assert_non_empty_string(matcher_version, "matcher_version")
+  if (!is.logical(allow_literal_fallback) ||
+      length(allow_literal_fallback) != 1L || is.na(allow_literal_fallback)) {
+    .excipient_application_abort(
+      "`allow_literal_fallback` must be a non-missing logical scalar."
+    )
+  }
 
   search <- function(
       active_ingredient,
       excipient_query,
       filters = list(authorized = TRUE, marketed = TRUE)) {
-    resolution <- resolve_excipient_query(taxonomy, excipient_query)
-    if (!identical(resolution$status, "resolved")) {
+    if (!is.character(excipient_query) || length(excipient_query) != 1L ||
+        is.na(excipient_query)) {
+      .excipient_application_abort(
+        "`excipient_query` must be a single, non-missing character string."
+      )
+    }
+    resolution_call <- .search_safe_call(function() {
+      resolve_excipient_query(taxonomy, excipient_query)
+    })
+    if (resolution_call$ok) {
+      resolution <- resolution_call$value
+    } else {
+      resolution <- new_excipient_resolution(
+        query = excipient_query,
+        status = "not_found",
+        strategy = "taxonomy"
+      )
+    }
+    if (identical(resolution$status, "ambiguous")) {
       return(new_excipient_search_result(
         query = .search_query_dto(active_ingredient, excipient_query, filters),
         resolution = resolution
       ))
     }
+    assessment_taxonomy_version <- taxonomy$version
+    if (!resolution_call$ok || identical(resolution$status, "not_found")) {
+      if (!allow_literal_fallback) {
+        errors <- if (resolution_call$ok) {
+          list()
+        } else {
+          list(new_excipient_search_error(
+            stage = "resolve_excipient",
+            message = conditionMessage(resolution_call$error),
+            condition = resolution_call$error,
+            code = "invalid_excipient_query"
+          ))
+        }
+        return(new_excipient_search_result(
+          query = .search_query_dto(active_ingredient, excipient_query, filters),
+          resolution = resolution,
+          errors = errors
+        ))
+      }
+      literal_call <- .search_safe_call(function() {
+        new_literal_query_excipient(excipient_query)
+      })
+      if (!literal_call$ok) {
+        return(new_excipient_search_result(
+          query = .search_query_dto(active_ingredient, excipient_query, filters),
+          resolution = resolution,
+          errors = list(new_excipient_search_error(
+            stage = "resolve_excipient",
+            message = conditionMessage(literal_call$error),
+            condition = literal_call$error,
+            code = "invalid_literal_query"
+          ))
+        ))
+      }
+      excipient <- literal_call$value
+      resolution <- new_literal_excipient_resolution(excipient_query, excipient)
+      assessment_taxonomy_version <- literal_excipient_taxonomy_version()
+    } else {
+      excipient <- resolution$candidates[[1]]
+    }
     .excipient_assert_non_empty_string(active_ingredient, "active_ingredient")
     filters <- .search_validate_filters(filters)
     query <- .search_query_dto(active_ingredient, excipient_query, filters)
-    excipient <- resolution$candidates[[1]]
 
     discovery <- .search_safe_call(function() {
       product_source$find_products_by_active_ingredient(active_ingredient, filters)
@@ -550,7 +613,7 @@ new_excipient_search_service <- function(
       assessment <- assess_excipient_from_retrieved_sources(
         subject_id = product_id,
         excipient = excipient,
-        taxonomy_version = taxonomy$version,
+        taxonomy_version = assessment_taxonomy_version,
         matcher_version = matcher_version,
         structured_snapshots = structured_snapshots,
         smpc_artifact = smpc_artifact,

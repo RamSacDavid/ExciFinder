@@ -155,13 +155,17 @@ new_search_fake_sources <- function(
   )
 }
 
-make_search_service <- function(sources, taxonomy = make_search_taxonomy()) {
+make_search_service <- function(
+    sources,
+    taxonomy = make_search_taxonomy(),
+    allow_literal_fallback = TRUE) {
   application_env$new_excipient_search_service(
     product_source = sources$product_source,
     composition_source = sources$composition_source,
     artifact_source = sources$artifact_source,
     taxonomy = taxonomy,
-    matcher_version = "matcher-search-1"
+    matcher_version = "matcher-search-1",
+    allow_literal_fallback = allow_literal_fallback
   )
 }
 

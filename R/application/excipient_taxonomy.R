@@ -83,14 +83,27 @@ new_excipient_resolution <- function(
     query,
     status,
     candidates = list(),
-    matched_terms = list()) {
-  .excipient_assert_non_empty_string(query, "query")
+    matched_terms = list(),
+    strategy = "taxonomy") {
+  if (!is.character(query) || length(query) != 1L || is.na(query)) {
+    .excipient_application_abort("`query` must be a single, non-missing character string.")
+  }
   statuses <- c("resolved", "ambiguous", "not_found")
   if (!is.character(status) || length(status) != 1L ||
       !status %in% statuses) {
     .excipient_application_abort(
       sprintf("`status` must be one of: %s.", paste(statuses, collapse = ", "))
     )
+  }
+  strategies <- c("taxonomy", "literal")
+  if (!is.character(strategy) || length(strategy) != 1L ||
+      is.na(strategy) || !strategy %in% strategies) {
+    .excipient_application_abort(
+      sprintf("`strategy` must be one of: %s.", paste(strategies, collapse = ", "))
+    )
+  }
+  if (!identical(status, "not_found")) {
+    .excipient_assert_non_empty_string(query, "query")
   }
   if (!is.list(candidates) ||
       !all(vapply(candidates, inherits, logical(1), "excipient"))) {
@@ -108,11 +121,15 @@ new_excipient_resolution <- function(
   if (identical(status, "not_found") && length(candidates) != 0L) {
     .excipient_application_abort("A not-found query cannot have candidates.")
   }
+  if (!identical(status, "resolved") && identical(strategy, "literal")) {
+    .excipient_application_abort("Literal strategy requires a resolved query.")
+  }
 
   structure(
     list(
       query = query,
       status = status,
+      strategy = strategy,
       candidates = candidates,
       matched_terms = matched_terms
     ),

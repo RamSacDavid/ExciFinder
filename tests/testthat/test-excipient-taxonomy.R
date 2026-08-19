@@ -80,8 +80,10 @@ test_that("query resolution handles canonical, synonym, language, and E-code ter
   e_code <- application_env$resolve_excipient_query(taxonomy, "E 420")
 
   expect_identical(canonical$status, "resolved")
+  expect_identical(canonical$strategy, "taxonomy")
   expect_identical(canonical$candidates[[1]]$id, "excipient-lactose")
   expect_identical(synonym$status, "resolved")
+  expect_identical(synonym$strategy, "taxonomy")
   expect_identical(synonym$matched_terms[[1]]$sources, "synonym")
   expect_identical(language$status, "resolved")
   expect_identical(language$matched_terms[[1]]$sources, "language_variant")
@@ -105,12 +107,14 @@ test_that("query resolution reports not found and ambiguity without choosing", {
   missing <- application_env$resolve_excipient_query(taxonomy, "sin concepto")
 
   expect_identical(ambiguous$status, "ambiguous")
+  expect_identical(ambiguous$strategy, "taxonomy")
   expect_identical(
     vapply(ambiguous$candidates, `[[`, character(1), "id"),
     c("excipient-one", "excipient-two")
   )
   expect_length(ambiguous$matched_terms, 2L)
   expect_identical(missing$status, "not_found")
+  expect_identical(missing$strategy, "taxonomy")
   expect_length(missing$candidates, 0L)
   expect_length(missing$matched_terms, 0L)
 })
