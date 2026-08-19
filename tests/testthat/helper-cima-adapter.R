@@ -17,7 +17,13 @@ sys.source(
   envir = cima_adapter_env
 )
 
-for (adapter_file in c("cima_client.R", "cima_mapper.R", "cima_sources.R")) {
+for (adapter_file in c(
+    "cima_client.R",
+    "cima_mapper.R",
+    "cima_sources.R",
+    "cima_document_client.R",
+    "cima_document_mapper.R",
+    "cima_document_sources.R")) {
   sys.source(
     file.path(project_root(), "R", "adapters", adapter_file),
     envir = cima_adapter_env
@@ -44,4 +50,35 @@ new_recording_cima_transport <- function(handler) {
     handler(url, query)
   }
   list(transport = transport, calls = function() calls)
+}
+
+new_recording_cima_document_transport <- function(handler) {
+  calls <- list()
+  transport <- function(url, query, accept) {
+    calls[[length(calls) + 1L]] <<- list(
+      url = url,
+      query = query,
+      accept = accept
+    )
+    handler(url, query, accept)
+  }
+  list(transport = transport, calls = function() calls)
+}
+
+read_cima_text_fixture <- function(name) {
+  paste(
+    readLines(cima_fixture_path(name), warn = FALSE, encoding = "UTF-8"),
+    collapse = "\n"
+  )
+}
+
+document_transport_response <- function(
+    content,
+    content_type,
+    status_code = 200L) {
+  list(
+    status_code = status_code,
+    content = content,
+    content_type = content_type
+  )
 }

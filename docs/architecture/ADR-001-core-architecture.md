@@ -133,6 +133,13 @@ preserve traceability. Entries are not canonical `Excipient` objects and do not
 perform resolution or matching. Evidence refers to provenance through
 `source_artifact_id`.
 
+CIMA catalogue JSON and negotiated document content use separate clients. The
+CIMA `SourceArtifactPort` maps document metadata to product-scoped artifacts
+and materializes segmented content as `SourceContent`; HTTP 404 means absence,
+while transport and server failures remain operational errors. Successful
+retrieval of SmPC section 6.1 does not by itself establish formulation-level
+verification coverage.
+
 Repositories start behind ports and may initially use memory. SQLite, DuckDB,
 or another persistent implementation can later replace that adapter without
 changing the domain or services.

@@ -1,0 +1,32 @@
+{
+  "nregistro": "20001",
+  "nombre": "MEDICINE DOCUMENT FIXTURE",
+  "docs": [
+    {
+      "tipo": 1,
+      "url": "https://example.invalid/20001/smpc-v1.pdf",
+      "urlHtml": "https://example.invalid/20001/smpc-v1",
+      "secc": true,
+      "fecha": 1704067200000
+    },
+    {
+      "tipo": 2,
+      "url": "https://example.invalid/20001/leaflet-v1.pdf",
+      "urlHtml": "https://example.invalid/20001/leaflet-v1",
+      "secc": true,
+      "fecha": 1704153600000
+    },
+    {
+      "tipo": 3,
+      "url": "https://example.invalid/20001/assessment-v1.pdf",
+      "secc": false,
+      "fecha": 1704240000000
+    },
+    {
+      "tipo": 4,
+      "url": "https://example.invalid/20001/risk-plan-v1.pdf",
+      "secc": false,
+      "fecha": 1704326400000
+    }
+  ]
+}

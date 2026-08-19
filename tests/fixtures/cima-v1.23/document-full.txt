@@ -1,0 +1,9 @@
+1. Denominación del medicamento
+Medicine document fixture
+
+6.1 Lista de excipientes
+Excipiente X
+Excipiente Y
+
+10. Fecha de revisión del texto
+2024-01-01
