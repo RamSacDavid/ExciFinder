@@ -21,7 +21,7 @@ test_that("factual policy implements the required decision table", {
       smpc_error = list(code = "section_unavailable")
     ),
     H = assess_factual_fixture(
-      structured_error = list(code = "structured_unavailable"),
+      structured_errors = list(list(code = "structured_unavailable")),
       smpc_error = list(code = "section_unavailable")
     ),
     I = assess_factual_fixture(NULL, smpc_html),
@@ -111,7 +111,7 @@ test_that("technical errors remain attached to their source attempts", {
   smpc_error <- list(code = "smpc_503")
 
   assessment <- assess_factual_fixture(
-    structured_error = structured_error,
+    structured_errors = list(structured_error),
     smpc_error = smpc_error
   )
 
@@ -164,4 +164,30 @@ test_that("assessment evidence remains nested in attempts and accessor-compatibl
       identical(item$excipient_id, assessment$excipient_id)
   }, logical(1))))
   expect_false("evidence" %in% names(assessment))
+})
+
+test_that("multiple structured snapshots and errors retain factual semantics", {
+  positive <- make_factual_structured_snapshot("Lactosa")
+  negative <- make_factual_structured_snapshot("Sacarosa")
+  error <- list(code = "second_formulation_failed")
+  with_unavailable_document <- assess_factual_fixture(
+    structured_snapshots = list(negative, positive),
+    structured_errors = list(error),
+    smpc_error = list(code = "document_unavailable")
+  )
+  with_exhaustive_negative <- assess_factual_fixture(
+    structured_snapshots = list(negative, positive),
+    smpc = make_factual_smpc("Sacarosa")
+  )
+  inverse <- assess_factual_fixture(
+    structured_snapshots = list(negative, negative),
+    smpc = make_factual_smpc("Lactosa")
+  )
+
+  expect_identical(with_unavailable_document$factual_conclusion, "identified")
+  expect_identical(with_unavailable_document$verification_coverage, "partial")
+  expect_length(with_unavailable_document$attempts, 4L)
+  expect_identical(with_unavailable_document$attempts[[3]]$error, error)
+  expect_identical(with_exhaustive_negative$factual_conclusion, "conflicting")
+  expect_identical(inverse$factual_conclusion, "identified")
 })

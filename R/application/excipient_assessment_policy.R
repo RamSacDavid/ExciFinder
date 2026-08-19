@@ -1,19 +1,26 @@
-.excipient_policy_assert_optional_error <- function(error, name) {
-  if (!is.null(error) && !is.list(error) && !is.character(error)) {
+.excipient_policy_assert_errors <- function(errors, name) {
+  if (!is.list(errors)) {
     .excipient_application_abort(
-      sprintf("`%s` must be NULL, a list, or a character value.", name)
+      sprintf("`%s` must be a list.", name)
+    )
+  }
+  if (!all(vapply(errors, function(error) {
+      is.list(error) || is.character(error)
+    }, logical(1)))) {
+    .excipient_application_abort(
+      sprintf("Every item in `%s` must be a list or character value.", name)
     )
   }
 }
 
 .excipient_policy_attempted <- function(
-    structured_snapshot,
+    structured_snapshots,
     smpc_artifact,
     smpc_content,
-    structured_error,
+    structured_errors,
     smpc_error) {
-  !is.null(structured_snapshot) || !is.null(smpc_artifact) ||
-    !is.null(smpc_content) || !is.null(structured_error) || !is.null(smpc_error)
+  length(structured_snapshots) > 0L || length(structured_errors) > 0L ||
+    !is.null(smpc_artifact) || !is.null(smpc_content) || !is.null(smpc_error)
 }
 
 assess_excipient_from_retrieved_sources <- function(
@@ -21,10 +28,10 @@ assess_excipient_from_retrieved_sources <- function(
     excipient,
     taxonomy_version,
     matcher_version,
-    structured_snapshot = NULL,
+    structured_snapshots = list(),
     smpc_artifact = NULL,
     smpc_content = NULL,
-    structured_error = NULL,
+    structured_errors = list(),
     smpc_error = NULL) {
   .excipient_assert_non_empty_string(subject_id, "subject_id")
   if (!inherits(excipient, "excipient")) {
@@ -32,11 +39,18 @@ assess_excipient_from_retrieved_sources <- function(
   }
   .excipient_assert_non_empty_string(taxonomy_version, "taxonomy_version")
   .excipient_assert_non_empty_string(matcher_version, "matcher_version")
-  .excipient_policy_assert_optional_error(structured_error, "structured_error")
-  .excipient_policy_assert_optional_error(smpc_error, "smpc_error")
-  if (!is.null(structured_snapshot) && !is.null(structured_error)) {
+  if (!is.list(structured_snapshots) || !all(vapply(
+      structured_snapshots,
+      is_source_composition_snapshot,
+      logical(1)))) {
     .excipient_application_abort(
-      "`structured_snapshot` and `structured_error` are mutually exclusive."
+      "`structured_snapshots` must contain only `source_composition_snapshot` objects."
+    )
+  }
+  .excipient_policy_assert_errors(structured_errors, "structured_errors")
+  if (!is.null(smpc_error) && !is.list(smpc_error) && !is.character(smpc_error)) {
+    .excipient_application_abort(
+      "`smpc_error` must be NULL, a list, or a character value."
     )
   }
   if ((!is.null(smpc_artifact) || !is.null(smpc_content)) && !is.null(smpc_error)) {
@@ -45,14 +59,23 @@ assess_excipient_from_retrieved_sources <- function(
     )
   }
 
-  structured_attempt <- if (is.null(structured_snapshot)) {
-    build_unavailable_excipient_attempt(
+  structured_attempts <- c(
+    lapply(structured_snapshots, function(snapshot) {
+      build_structured_excipient_attempt(snapshot, excipient, subject_id)
+    }),
+    lapply(structured_errors, function(error) {
+      build_unavailable_excipient_attempt(
       source = "structured_composition",
       method = "structured_composition_controlled_terms",
-      error = structured_error
-    )
-  } else {
-    build_structured_excipient_attempt(structured_snapshot, excipient, subject_id)
+        error = error
+      )
+    })
+  )
+  if (length(structured_attempts) == 0L) {
+    structured_attempts <- list(build_unavailable_excipient_attempt(
+      source = "structured_composition",
+      method = "structured_composition_controlled_terms"
+    ))
   }
   smpc_attempt <- if (is.null(smpc_artifact) && is.null(smpc_content)) {
     build_unavailable_excipient_attempt(
@@ -70,8 +93,12 @@ assess_excipient_from_retrieved_sources <- function(
     )
   }
 
-  structured_positive <- identical(structured_attempt$outcome, "evidence_found")
-  structured_processed <- identical(structured_attempt$extraction_status, "complete")
+  structured_positive <- any(vapply(structured_attempts, function(attempt) {
+    identical(attempt$outcome, "evidence_found")
+  }, logical(1)))
+  structured_processed <- any(vapply(structured_attempts, function(attempt) {
+    identical(attempt$extraction_status, "complete")
+  }, logical(1)))
   smpc_positive <- identical(smpc_attempt$outcome, "evidence_found")
   smpc_exhaustive_no_match <- identical(smpc_attempt$outcome, "no_evidence") &&
     identical(smpc_attempt$extraction_status, "complete")
@@ -96,10 +123,10 @@ assess_excipient_from_retrieved_sources <- function(
   } else if (structured_processed) {
     "partial"
   } else if (.excipient_policy_attempted(
-      structured_snapshot,
+      structured_snapshots,
       smpc_artifact,
       smpc_content,
-      structured_error,
+      structured_errors,
       smpc_error)) {
     "failed"
   } else {
@@ -111,7 +138,7 @@ assess_excipient_from_retrieved_sources <- function(
     excipient_id = excipient$id,
     factual_conclusion = factual_conclusion,
     verification_coverage = verification_coverage,
-    attempts = list(structured_attempt, smpc_attempt),
+    attempts = c(structured_attempts, list(smpc_attempt)),
     technical_errors = list(),
     matcher_version = matcher_version,
     taxonomy_version = taxonomy_version

@@ -52,20 +52,28 @@ make_factual_smpc <- function(
 }
 
 assess_factual_fixture <- function(
-    structured_snapshot = NULL,
+    structured_snapshots = list(),
     smpc = NULL,
-    structured_error = NULL,
+    structured_errors = list(),
     smpc_error = NULL,
     excipient = make_factual_excipient()) {
+  if (is.null(structured_snapshots)) {
+    structured_snapshots <- list()
+  } else if (inherits(structured_snapshots, "source_composition_snapshot")) {
+    structured_snapshots <- list(structured_snapshots)
+  }
+  if (!is.null(structured_errors) && !is.list(structured_errors)) {
+    structured_errors <- list(structured_errors)
+  }
   application_env$assess_excipient_from_retrieved_sources(
     subject_id = "AEMPS:30001",
     excipient = excipient,
     taxonomy_version = "taxonomy-test-1",
     matcher_version = "matcher-test-1",
-    structured_snapshot = structured_snapshot,
+    structured_snapshots = structured_snapshots,
     smpc_artifact = if (is.null(smpc)) NULL else smpc$artifact,
     smpc_content = if (is.null(smpc)) NULL else smpc$content,
-    structured_error = structured_error,
+    structured_errors = structured_errors,
     smpc_error = smpc_error
   )
 }

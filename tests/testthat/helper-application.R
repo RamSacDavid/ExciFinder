@@ -21,7 +21,8 @@ for (application_file in c(
     "excipient_taxonomy.R",
     "excipient_matching.R",
     "excipient_evidence_builder.R",
-    "excipient_assessment_policy.R")) {
+    "excipient_assessment_policy.R",
+    "search_excipient.R")) {
   sys.source(
     file.path(project_root(), "R", "application", application_file),
     envir = application_env
