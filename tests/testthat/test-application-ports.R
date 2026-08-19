@@ -86,15 +86,27 @@ make_artifact_source_fake <- function(artifact, content) {
 }
 
 make_composition_source_fake <- function(entry_name) {
-  entry <- application_env$new_source_excipient_entry(
-    source_artifact_id = "artifact-structured-001",
-    source_record_id = paste0("entry-", entry_name),
+  artifact <- domain_env$new_source_artifact(
+    id = paste0("artifact-", entry_name),
+    source = "authority",
     subject_id = "formulation-001",
+    artifact_type = "structured_record",
+    artifact_kind = "medicinal_product_record"
+  )
+  entry <- application_env$new_source_excipient_entry(
+    source_artifact_id = artifact$id,
+    source_record_id = paste0("entry-", entry_name),
+    subject_id = artifact$subject_id,
     name = entry_name
   )
+  snapshot <- application_env$new_source_composition_snapshot(artifact, list(entry))
   application_env$new_composition_source_port(
-    list_excipient_entries = function(subject_id) {
-      if (identical(subject_id, entry$subject_id)) list(entry) else list()
+    get_composition_snapshot = function(subject_id) {
+      if (identical(subject_id, artifact$subject_id)) {
+        snapshot
+      } else {
+        application_env$new_port_absent()
+      }
     }
   )
 }
@@ -262,26 +274,91 @@ test_that("artifact source ports accept full and section content requests", {
   expect_true(application_env$is_port_absent(port$get_source_content("artifact-1", "4.4")))
 })
 
-test_that("composition source ports return source entries, not canonical concepts", {
+test_that("source composition snapshots enforce atomic provenance invariants", {
+  artifact <- domain_env$new_source_artifact(
+    "artifact-structured-001", "authority", "formulation-001",
+    "structured_record", "medicinal_product_record"
+  )
+  entry <- application_env$new_source_excipient_entry(
+    artifact$id, "entry-001", artifact$subject_id, "source lactose name"
+  )
+
+  snapshot <- application_env$new_source_composition_snapshot(artifact, list(entry))
+  empty_snapshot <- application_env$new_source_composition_snapshot(artifact)
+
+  expect_s3_class(snapshot, "source_composition_snapshot")
+  expect_s3_class(snapshot, "excifinder_application_dto")
+  expect_named(snapshot, c("source_artifact", "entries"))
+  expect_identical(snapshot$source_artifact, artifact)
+  expect_identical(snapshot$entries, list(entry))
+  expect_length(empty_snapshot$entries, 0L)
+
+  document <- domain_env$new_source_artifact(
+    "artifact-document-001", "authority", "formulation-001",
+    "document", "summary_of_product_characteristics"
+  )
+  wrong_artifact <- application_env$new_source_excipient_entry(
+    "artifact-other", "entry-002", artifact$subject_id, "source entry"
+  )
+  wrong_subject <- application_env$new_source_excipient_entry(
+    artifact$id, "entry-003", "formulation-other", "source entry"
+  )
+
+  expect_error(
+    application_env$new_source_composition_snapshot("not an artifact"),
+    "source_artifact"
+  )
+  expect_error(
+    application_env$new_source_composition_snapshot(document),
+    "structured_record"
+  )
+  expect_error(
+    application_env$new_source_composition_snapshot(artifact, list(wrong_artifact)),
+    "source_artifact.id"
+  )
+  expect_error(
+    application_env$new_source_composition_snapshot(artifact, list(wrong_subject)),
+    "source_artifact.subject_id"
+  )
+  expect_error(
+    application_env$new_source_composition_snapshot(artifact, list("not an entry")),
+    "source_excipient_entry"
+  )
+})
+
+test_that("composition source ports return snapshots or explicit absence", {
   port <- make_composition_source_fake("source lactose name")
-  entry <- port$list_excipient_entries("formulation-001")[[1]]
+  snapshot <- port$get_composition_snapshot("formulation-001")
+  entry <- snapshot$entries[[1]]
 
   expect_true(application_env$is_composition_source_port(port))
+  expect_named(port, "get_composition_snapshot")
+  expect_false("list_excipient_entries" %in% names(port))
+  expect_s3_class(snapshot, "source_composition_snapshot")
   expect_s3_class(entry, "source_excipient_entry")
   expect_false(inherits(entry, "excipient"))
   expect_false("excipient_id" %in% names(entry))
+  expect_true(application_env$is_port_absent(
+    port$get_composition_snapshot("formulation-missing")
+  ))
+  expect_error(
+    application_env$new_composition_source_port(
+      list_excipient_entries = function(subject_id) list()
+    ),
+    "unused argument"
+  )
 })
 
 test_that("composition source fakes are substitutable", {
   first <- make_composition_source_fake("source name one")
   second <- make_composition_source_fake("source name two")
   caller <- function(source_port) {
-    source_port$list_excipient_entries("formulation-001")[[1]]
+    source_port$get_composition_snapshot("formulation-001")
   }
 
   expect_identical(names(first), names(second))
-  expect_s3_class(caller(first), "source_excipient_entry")
-  expect_s3_class(caller(second), "source_excipient_entry")
+  expect_s3_class(caller(first), "source_composition_snapshot")
+  expect_s3_class(caller(second), "source_composition_snapshot")
   expect_false(identical(caller(first), caller(second)))
 })
 

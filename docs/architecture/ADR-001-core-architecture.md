@@ -126,10 +126,12 @@ be versioned and validated independently.
 - Use R6 only if a concrete future mutable-state requirement justifies it.
 
 `SourceArtifactPort` retrieves artifact provenance and content.
-`CompositionSourcePort` exposes source-native composition as
-`SourceExcipientEntry` application DTOs. These entries are not canonical
-`Excipient` objects and do not perform resolution or matching. Evidence refers
-to its provenance through `source_artifact_id`.
+`CompositionSourcePort` exposes source-native composition as a
+`SourceCompositionSnapshot` containing its `SourceArtifact` and
+`SourceExcipientEntry` DTOs. Provenance and entries are retrieved atomically to
+preserve traceability. Entries are not canonical `Excipient` objects and do not
+perform resolution or matching. Evidence refers to provenance through
+`source_artifact_id`.
 
 Repositories start behind ports and may initially use memory. SQLite, DuckDB,
 or another persistent implementation can later replace that adapter without

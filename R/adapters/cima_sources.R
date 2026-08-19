@@ -158,11 +158,11 @@ new_cima_composition_source_port <- function(
 
   # Structured excipient entries are not assumed exhaustive for absence assessment.
   new_composition_source_port(
-    list_excipient_entries = function(subject_id) {
+    get_composition_snapshot = function(subject_id) {
       product_id <- formulation_identity$product_id_from_formulation_id(subject_id)
       raw <- .cima_raw_detail_or_absent(client, product_id)
       if (is_port_absent(raw)) {
-        return(list())
+        return(raw)
       }
       product <- map_cima_medicinal_product(raw)
       formulation <- map_cima_formulation(
@@ -173,7 +173,7 @@ new_cima_composition_source_port <- function(
       if (!identical(formulation$id, subject_id)) {
         .cima_sources_abort(
           "Formulation identity strategy is not reversible for this ID.",
-          "list_excipient_entries"
+          "get_composition_snapshot"
         )
       }
       artifact <- map_cima_structured_source_artifact(
@@ -181,7 +181,12 @@ new_cima_composition_source_port <- function(
         formulation$id,
         retrieved_at = retrieved_at()
       )
-      map_cima_source_excipient_entries(raw, artifact$id, formulation$id)
+      entries <- map_cima_source_excipient_entries(
+        raw,
+        artifact$id,
+        formulation$id
+      )
+      new_source_composition_snapshot(artifact, entries)
     }
   )
 }

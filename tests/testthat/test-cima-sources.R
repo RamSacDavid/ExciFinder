@@ -83,7 +83,7 @@ test_that("CIMA formulation identity strategy remains reversible and replaceable
   expect_length(presentations, 2L)
 })
 
-test_that("CIMA CompositionSourcePort returns entries without factual conclusions", {
+test_that("CIMA CompositionSourcePort returns artifact and entries atomically", {
   setup <- make_cima_source_test_client()
   retrieved_at <- as.POSIXct("2026-08-18 10:00:00", tz = "UTC")
   clock_calls <- 0L
@@ -95,9 +95,11 @@ test_that("CIMA CompositionSourcePort returns entries without factual conclusion
     }
   )
 
-  entries <- port$list_excipient_entries("AEMPS:10001:formulation:1")
+  snapshot <- port$get_composition_snapshot("AEMPS:10001:formulation:1")
+  entries <- snapshot$entries
 
   expect_s3_class(port, "composition_source_port")
+  expect_s3_class(snapshot, "source_composition_snapshot")
   expect_length(entries, 2L)
   expected_artifact_id <- cima_adapter_env$cima_structured_artifact_id(
     "10001",
@@ -105,8 +107,16 @@ test_that("CIMA CompositionSourcePort returns entries without factual conclusion
   )
   expect_true(all(vapply(entries, inherits, logical(1), "source_excipient_entry")))
   expect_true(all(vapply(entries, function(entry) {
-    identical(entry$source_artifact_id, expected_artifact_id)
+    identical(entry$source_artifact_id, snapshot$source_artifact$id) &&
+      identical(entry$subject_id, snapshot$source_artifact$subject_id)
   }, logical(1))))
+  expect_identical(snapshot$source_artifact$id, expected_artifact_id)
+  expect_identical(snapshot$source_artifact$artifact_type, "structured_record")
+  expect_identical(
+    snapshot$source_artifact$artifact_kind,
+    "medicinal_product_record"
+  )
+  expect_identical(snapshot$source_artifact$retrieved_at, retrieved_at)
   expect_identical(clock_calls, 1L)
   expect_false(any(vapply(entries, inherits, logical(1), "excipient")))
   expect_false(any(vapply(entries, inherits, logical(1), "excipient_evidence")))
@@ -120,12 +130,28 @@ test_that("empty structured entries do not imply absence", {
   setup <- make_cima_source_test_client("medicamento-no-excipients.json")
   port <- cima_adapter_env$new_cima_composition_source_port(setup$client)
 
-  entries <- port$list_excipient_entries("AEMPS:10005:formulation:1")
+  snapshot <- port$get_composition_snapshot("AEMPS:10005:formulation:1")
 
-  expect_type(entries, "list")
-  expect_length(entries, 0L)
-  expect_false(is.logical(entries))
-  expect_false(inherits(entries, "excipient_assessment"))
+  expect_s3_class(snapshot, "source_composition_snapshot")
+  expect_s3_class(snapshot$source_artifact, "source_artifact")
+  expect_length(snapshot$entries, 0L)
+  expect_false(cima_adapter_env$is_port_absent(snapshot))
+})
+
+test_that("missing CIMA structured composition returns port_absent", {
+  recorder <- new_recording_cima_transport(function(url, query) {
+    if (endsWith(url, "/medicamento")) {
+      return(list())
+    }
+    stop("Unexpected adapter URL", call. = FALSE)
+  })
+  client <- cima_adapter_env$new_cima_client(transport = recorder$transport)
+  port <- cima_adapter_env$new_cima_composition_source_port(client)
+
+  result <- port$get_composition_snapshot("AEMPS:10009:formulation:1")
+
+  expect_true(cima_adapter_env$is_port_absent(result))
+  expect_length(recorder$calls(), 1L)
 })
 
 test_that("CIMA source ports reject identifiers outside their namespace", {
@@ -137,7 +163,7 @@ test_that("CIMA source ports reject identifiers outside their namespace", {
 
   expect_error(product_port$get_product("OTHER:10001"), class = "excifinder_port_error")
   expect_error(
-    composition_port$list_excipient_entries("OTHER:formulation:1"),
+    composition_port$get_composition_snapshot("OTHER:formulation:1"),
     class = "excifinder_port_error"
   )
   expect_length(setup$calls(), 0L)

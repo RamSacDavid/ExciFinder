@@ -118,6 +118,39 @@ is_source_excipient_entry <- function(x) {
   inherits(x, "source_excipient_entry")
 }
 
+new_source_composition_snapshot <- function(source_artifact, entries = list()) {
+  if (!inherits(source_artifact, "source_artifact")) {
+    .port_abort("`source_artifact` must be a `source_artifact` object.")
+  }
+  if (!identical(source_artifact$artifact_type, "structured_record")) {
+    .port_abort("`source_artifact` must have `artifact_type` equal to `structured_record`.")
+  }
+  if (!is.list(entries)) {
+    .port_abort("`entries` must be a list of `source_excipient_entry` objects.")
+  }
+
+  for (entry in entries) {
+    if (!is_source_excipient_entry(entry)) {
+      .port_abort("Every item in `entries` must be a `source_excipient_entry` object.")
+    }
+    if (!identical(entry$source_artifact_id, source_artifact$id)) {
+      .port_abort("Every entry must reference `source_artifact$id`.")
+    }
+    if (!identical(entry$subject_id, source_artifact$subject_id)) {
+      .port_abort("Every entry must reference `source_artifact$subject_id`.")
+    }
+  }
+
+  structure(
+    list(source_artifact = source_artifact, entries = entries),
+    class = c("source_composition_snapshot", "excifinder_application_dto")
+  )
+}
+
+is_source_composition_snapshot <- function(x) {
+  inherits(x, "source_composition_snapshot")
+}
+
 # This source port represents the official product source. Its functions return
 # canonical domain objects, a list of canonical domain objects, or `port_absent`.
 new_product_source_port <- function(
@@ -176,13 +209,22 @@ is_source_artifact_port <- function(x) {
   inherits(x, "source_artifact_port")
 }
 
-# This port exposes source-native composition entries without resolving them to
-# canonical domain concepts or applying matching rules.
-new_composition_source_port <- function(list_excipient_entries = NULL) {
-  .port_assert_function(list_excipient_entries, "list_excipient_entries")
+# This port exposes source-native structured composition and its provenance
+# atomically, without resolving entries to canonical concepts or applying matching rules.
+new_composition_source_port <- function(get_composition_snapshot = NULL) {
+  .port_assert_function(get_composition_snapshot, "get_composition_snapshot")
 
   .new_port(
-    list(list_excipient_entries = list_excipient_entries),
+    list(get_composition_snapshot = function(subject_id) {
+      .port_assert_non_empty_string(subject_id, "subject_id")
+      result <- get_composition_snapshot(subject_id)
+      if (!is_source_composition_snapshot(result) && !is_port_absent(result)) {
+        .port_abort(
+          "`get_composition_snapshot` must return a `source_composition_snapshot` or `port_absent`."
+        )
+      }
+      result
+    }),
     "composition_source_port"
   )
 }
