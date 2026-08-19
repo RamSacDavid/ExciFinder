@@ -1,13 +1,39 @@
-excifinder_text_input <- function(input_id, label) {
+excifinder_predictive_input <- function(input_id, label, query_input_id) {
+  control <- shiny::selectizeInput(
+    input_id,
+    label,
+    choices = character(),
+    selected = NULL,
+    options = list(
+      create = TRUE,
+      persist = FALSE,
+      maxOptions = 15L,
+      maxItems = 1L,
+      onType = I(sprintf(
+        "function(value) { Shiny.setInputValue('%s', value, {priority: 'event'}); }",
+        query_input_id
+      ))
+    )
+  )
+  control$children[[2L]]$children[[1L]]$attribs$maxlength <-
+    as.character(search_input_max_chars())
+  control
+}
+
+excifinder_state_box <- function(conclusion, output_id) {
+  titles <- c(
+    identified = "IDENTIFICADO",
+    not_identified = "NO IDENTIFICADO EN FUENTES VERIFICADAS",
+    indeterminate = "NO VERIFICABLE",
+    conflicting = "FUENTES DISCORDANTES"
+  )
   shiny::div(
-    class = "form-group shiny-input-container",
-    shiny::tags$label(`for` = input_id, label),
-    shiny::tags$input(
-      id = input_id,
-      type = "text",
-      class = "shiny-input-text form-control",
-      value = "",
-      maxlength = as.character(search_input_max_chars())
+    class = paste("excifinder-state-group", excifinder_state_class(conclusion)),
+    shinydashboard::box(
+      title = unname(titles[[conclusion]]),
+      solidHeader = TRUE,
+      width = NULL,
+      DT::DTOutput(output_id)
     )
   )
 }
@@ -18,8 +44,14 @@ build_excifinder_ui <- function() {
     sidebar = shinydashboard::dashboardSidebar(
       shiny::div(
         style = "padding: 15px;",
-        excifinder_text_input("pa", "Principio activo:"),
-        excifinder_text_input("excipiente", "Excipiente:"),
+        excifinder_predictive_input("pa", "Principio activo:", "pa_query"),
+        excifinder_predictive_input(
+          "excipiente", "Excipiente:", "excipiente_query"
+        ),
+        shiny::p(
+          class = "excifinder-input-help",
+          "Las sugerencias de excipiente proceden de datos estructurados disponibles y pueden no ser exhaustivas."
+        ),
         shiny::actionButton(
           "buscar",
           "BUSCAR",
@@ -46,7 +78,7 @@ build_excifinder_ui <- function() {
           shiny::tags$p(paste(
             "ExciFinder organiza información procedente de fuentes oficiales de CIMA/AEMPS.",
             "Los resultados reflejan únicamente las fuentes que pudieron analizarse.",
-            "“No identificado” no debe interpretarse como garantía absoluta de ausencia",
+            "“No identificado en fuentes verificadas” no debe interpretarse como garantía absoluta de ausencia",
             "y la información debe verificarse en la ficha técnica oficial antes de tomar decisiones clínicas."
           )),
           shiny::tags$p(paste(
@@ -67,6 +99,17 @@ build_excifinder_ui <- function() {
         .dataTables_wrapper { font-size: 12px; background: white; padding: 10px; }
         .excifinder-message { margin: 8px 0; font-weight: 600; }
         .excifinder-warning { margin: 8px 0; color: #7a4b00; font-weight: 600; }
+        .excifinder-input-help { color: #e9eef5; font-size: 11px; line-height: 1.35; }
+        .excifinder-state-group .box { border-top: 0; background: #ffffff; }
+        .excifinder-state-group .box-header { color: #ffffff; }
+        .state-identified .box { background: #fbe9e9; }
+        .state-identified .box-header { background: #a82d35; }
+        .state-not-identified .box { background: #e8f5ec; }
+        .state-not-identified .box-header { background: #287a45; }
+        .state-indeterminate .box { background: #eeeeee; }
+        .state-indeterminate .box-header { background: #5f6870; }
+        .state-conflicting .box { background: #fff0df; }
+        .state-conflicting .box-header { background: #b85f00; }
       "))),
       shiny::fluidRow(
         shiny::column(
@@ -82,16 +125,17 @@ build_excifinder_ui <- function() {
       ),
       shiny::fluidRow(
         shiny::column(
-          width = 12,
-          shinydashboard::box(
-            title = "RESULTADOS",
-            status = "primary",
-            solidHeader = TRUE,
-            width = NULL,
-            DT::DTOutput("results_table")
+          width = 6,
+          excifinder_state_box("identified", "results_identified")
+        ),
+        shiny::column(
+          width = 6,
+          excifinder_state_box(
+            "not_identified", "results_not_identified"
           )
         )
-      )
+      ),
+      shiny::uiOutput("secondary_result_groups")
     )
   )
 }

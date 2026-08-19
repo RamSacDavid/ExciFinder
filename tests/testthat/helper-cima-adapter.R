@@ -21,10 +21,15 @@ sys.source(
   file.path(project_root(), "R", "application", "ports.R"),
   envir = cima_adapter_env
 )
+sys.source(
+  file.path(project_root(), "R", "application", "suggestions.R"),
+  envir = cima_adapter_env
+)
 
 for (adapter_file in c(
     "http_policy.R",
     "cima_client.R",
+    "cima_suggestions.R",
     "cima_mapper.R",
     "cima_sources.R",
     "cima_document_client.R",

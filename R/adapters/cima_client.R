@@ -199,3 +199,49 @@ new_cima_client <- function(
 is_cima_client <- function(x) {
   inherits(x, "cima_client")
 }
+
+# A fresh wrapper is created for each Shiny session. It only memoizes detail
+# requests and can be cleared at operation boundaries; no state is global or
+# persistent.
+new_memoized_cima_client <- function(client) {
+  if (!is_cima_client(client)) {
+    .cima_client_abort("`client` must be a CIMA client.", "validation")
+  }
+  detail_cache <- new.env(parent = emptyenv())
+
+  get_medicine <- function(registration_number) {
+    .cima_assert_non_empty_string(registration_number, "registration_number")
+    key <- enc2utf8(registration_number)
+    if (!exists(key, envir = detail_cache, inherits = FALSE)) {
+      assign(key, client$get_medicine(registration_number), envir = detail_cache)
+    }
+    get(key, envir = detail_cache, inherits = FALSE)
+  }
+
+  clear_cache <- function() {
+    rm(list = ls(detail_cache, all.names = TRUE), envir = detail_cache)
+    invisible(NULL)
+  }
+
+  structure(
+    list(
+      find_medicines_page = client$find_medicines_page,
+      find_all_medicines = client$find_all_medicines,
+      get_medicine = get_medicine,
+      clear_cache = clear_cache
+    ),
+    class = c("memoized_cima_client", "cima_client")
+  )
+}
+
+with_cima_client_cache_scope <- function(client, operation) {
+  if (!is_cima_client(client) || !is.function(client$clear_cache)) {
+    .cima_client_abort("`client` must be a memoized CIMA client.", "validation")
+  }
+  if (!is.function(operation)) {
+    .cima_client_abort("`operation` must be a function.", "validation")
+  }
+  client$clear_cache()
+  on.exit(client$clear_cache(), add = TRUE)
+  operation()
+}

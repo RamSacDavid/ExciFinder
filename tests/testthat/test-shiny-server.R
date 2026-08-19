@@ -23,6 +23,114 @@ test_that("server calls injected service once with canonical inputs and filters"
   })
 })
 
+test_that("active ingredient autocomplete is debounced and ignores short queries", {
+  search <- new_ui_fake_search_service(make_ui_search_result())
+  suggestions <- new_ui_fake_suggestion_source(c("PARACETAMOL", "PAROXETINA"))
+
+  shiny::testServer(application_env$build_excifinder_server(
+    search_service = search$service,
+    active_ingredient_suggestion_source = suggestions$source
+  ), {
+    session$setInputs(pa = "PARACETAMOL")
+    session$setInputs(pa_query = "p")
+    session$elapse(350)
+    session$flushReact()
+    expect_length(suggestions$calls$items, 0L)
+
+    session$setInputs(pa_query = "para")
+    session$elapse(299)
+    session$flushReact()
+    expect_length(suggestions$calls$items, 0L)
+    session$elapse(1)
+    session$flushReact()
+    expect_length(suggestions$calls$items, 1L)
+    expect_identical(suggestions$calls$items[[1]], list(query = "para", limit = 15L))
+    expect_identical(input$pa, "PARACETAMOL")
+  })
+})
+
+test_that("contextual excipient autocomplete follows PA and preserves typed values", {
+  search <- new_ui_fake_search_service(make_ui_search_result())
+  suggestions <- new_ui_fake_excipient_suggestion_service(
+    c("Lactosa", "Sacarosa")
+  )
+
+  shiny::testServer(application_env$build_excifinder_server(
+    search_service = search$service,
+    excipient_suggestion_service = suggestions$service
+  ), {
+    session$setInputs(pa = "paracetamol", excipiente = "texto libre")
+    session$elapse(300)
+    session$flushReact()
+
+    expect_length(suggestions$calls$items, 1L)
+    expect_identical(
+      suggestions$calls$items[[1]],
+      list(active_ingredient = "paracetamol", limit = 15L)
+    )
+    expect_identical(input$pa, "paracetamol")
+    expect_identical(input$excipiente, "texto libre")
+  })
+})
+
+test_that("suggestion failures do not block free-text factual search", {
+  search <- new_ui_fake_search_service(make_ui_search_result())
+  pa_suggestions <- new_ui_fake_suggestion_source(fail = TRUE)
+  excipient_suggestions <- new_ui_fake_excipient_suggestion_service(fail = TRUE)
+
+  shiny::testServer(application_env$build_excifinder_server(
+    search_service = search$service,
+    active_ingredient_suggestion_source = pa_suggestions$source,
+    excipient_suggestion_service = excipient_suggestions$service
+  ), {
+    session$setInputs(pa_query = "manual", pa = "manual PA", excipiente = "manual excipient")
+    session$elapse(300)
+    session$flushReact()
+    session$setInputs(buscar = 1)
+    session$flushReact()
+
+    expect_length(pa_suggestions$calls$items, 1L)
+    expect_length(excipient_suggestions$calls$items, 1L)
+    expect_length(search$calls$items, 1L)
+    expect_identical(search$calls$items[[1]]$active_ingredient, "manual PA")
+    expect_identical(search$calls$items[[1]]$excipient_query, "manual excipient")
+  })
+})
+
+test_that("server renders every factual result in its separate group", {
+  fake <- new_ui_fake_search_service(make_ui_mixed_result())
+
+  shiny::testServer(application_env$build_excifinder_server(fake$service), {
+    session$setInputs(buscar = 0)
+    session$flushReact()
+    session$setInputs(pa = "ingredient", excipiente = "lactosa", buscar = 1)
+    session$flushReact()
+
+    expect_silent(output$results_identified)
+    expect_silent(output$results_not_identified)
+    expect_silent(output$results_indeterminate)
+    expect_silent(output$results_conflicting)
+    secondary <- paste(as.character(output$secondary_result_groups), collapse = "")
+    expect_match(secondary, "NO VERIFICABLE", fixed = TRUE)
+    expect_match(secondary, "FUENTES DISCORDANTES", fixed = TRUE)
+  })
+})
+
+test_that("secondary groups are omitted when they have no results", {
+  fake <- new_ui_fake_search_service(make_ui_mixed_result(
+    c("identified", "not_identified")
+  ))
+
+  shiny::testServer(application_env$build_excifinder_server(fake$service), {
+    session$setInputs(buscar = 0)
+    session$flushReact()
+    session$setInputs(pa = "ingredient", excipiente = "lactosa", buscar = 1)
+    session$flushReact()
+
+    expect_null(output$secondary_result_groups)
+  })
+})
+
 test_that("ambiguous query renders its explanatory message", {
   fake <- new_ui_fake_search_service(make_ui_ambiguous_result())
 
