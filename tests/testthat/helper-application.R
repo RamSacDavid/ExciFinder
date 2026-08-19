@@ -1,10 +1,27 @@
 application_env <- new.env(parent = baseenv())
+
+for (domain_file in c(
+    "medicinal_products.R",
+    "excipients.R",
+    "source_artifacts.R",
+    "evidence.R",
+    "verification.R")) {
+  sys.source(
+    file.path(project_root(), "R", "domain", domain_file),
+    envir = application_env
+  )
+}
+
 sys.source(
   file.path(project_root(), "R", "application", "ports.R"),
   envir = application_env
 )
 
-for (application_file in c("excipient_taxonomy.R", "excipient_matching.R")) {
+for (application_file in c(
+    "excipient_taxonomy.R",
+    "excipient_matching.R",
+    "excipient_evidence_builder.R",
+    "excipient_assessment_policy.R")) {
   sys.source(
     file.path(project_root(), "R", "application", application_file),
     envir = application_env
