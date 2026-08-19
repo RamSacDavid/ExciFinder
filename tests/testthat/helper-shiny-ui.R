@@ -2,11 +2,12 @@ make_ui_search_result <- function(
     conclusion = "identified",
     coverage = "complete",
     strategy = "literal",
+    product_name = "UI Product",
     evidence_excerpts = "Original lactose excerpt",
     smpc_urls = "https://example.test/document.pdf",
     include_structured = FALSE,
     errors = list()) {
-  product <- make_search_product("ui-001", "UI Product")
+  product <- make_search_product("ui-001", product_name)
   product_id <- domain_env$medicinal_product_id(product)
   excipient <- domain_env$new_excipient("ui-excipient", "lactosa")
   artifacts <- list()

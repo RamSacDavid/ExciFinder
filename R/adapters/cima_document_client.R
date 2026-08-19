@@ -29,10 +29,10 @@
 }
 
 .cima_document_default_transport <- function(url, query, accept) {
-  response <- httr::GET(
+  response <- excifinder_http_get(
     url,
     query = query,
-    httr::add_headers(Accept = accept)
+    headers = list(httr::add_headers(Accept = accept))
   )
   content_type <- httr::headers(response)[["content-type"]]
   content <- rawToChar(httr::content(response, as = "raw"))

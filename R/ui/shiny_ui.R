@@ -1,11 +1,25 @@
+excifinder_text_input <- function(input_id, label) {
+  shiny::div(
+    class = "form-group shiny-input-container",
+    shiny::tags$label(`for` = input_id, label),
+    shiny::tags$input(
+      id = input_id,
+      type = "text",
+      class = "shiny-input-text form-control",
+      value = "",
+      maxlength = as.character(search_input_max_chars())
+    )
+  )
+}
+
 build_excifinder_ui <- function() {
   shinydashboard::dashboardPage(
     header = shinydashboard::dashboardHeader(title = "ExciFinder"),
     sidebar = shinydashboard::dashboardSidebar(
       shiny::div(
         style = "padding: 15px;",
-        shiny::textInput("pa", "Principio activo:", value = ""),
-        shiny::textInput("excipiente", "Excipiente:", value = ""),
+        excifinder_text_input("pa", "Principio activo:"),
+        excifinder_text_input("excipiente", "Excipiente:"),
         shiny::actionButton(
           "buscar",
           "BUSCAR",

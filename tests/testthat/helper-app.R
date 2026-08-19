@@ -43,11 +43,11 @@ load_legacy_engine <- function() {
   legacy_env$incProgress <- shiny::incProgress
 
   for (legacy_file in c(
-      "text_normalization.R",
+      "text_normalization_legacy.R",
       "cima_legacy.R",
       "excipient_search_legacy.R")) {
     sys.source(
-      file.path(project_root(), "R", legacy_file),
+      file.path(project_root(), "tests", "legacy", legacy_file),
       envir = legacy_env
     )
   }

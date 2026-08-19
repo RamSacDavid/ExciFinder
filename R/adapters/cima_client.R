@@ -44,7 +44,7 @@
 }
 
 .cima_default_transport <- function(url, query) {
-  response <- httr::GET(url, query = query)
+  response <- excifinder_http_get(url, query = query)
   httr::stop_for_status(response)
   payload <- httr::content(response, as = "text", encoding = "UTF-8")
   jsonlite::fromJSON(payload, simplifyVector = FALSE)

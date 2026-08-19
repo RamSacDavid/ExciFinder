@@ -1,3 +1,37 @@
+excifinder_safe_filename <- function(active_ingredient, max_stem_chars = 80L) {
+  if (!is.character(active_ingredient) || length(active_ingredient) != 1L ||
+      is.na(active_ingredient)) {
+    active_ingredient <- ""
+  }
+  stem <- stringi::stri_trans_nfkc(active_ingredient)
+  stem <- stringi::stri_replace_all_regex(
+    stem,
+    "[\\\\/:*?\"<>|\\p{Cc}]+",
+    " "
+  )
+  stem <- stringi::stri_replace_all_regex(
+    stem,
+    "[^\\p{L}\\p{N}._ -]+",
+    " "
+  )
+  stem <- stringi::stri_trim_both(stem)
+  stem <- stringi::stri_replace_all_regex(stem, "[\\p{Z}\\s]+", "_")
+  stem <- stringi::stri_replace_all_regex(stem, "^[._-]+|[._-]+$", "")
+  stem <- stringi::stri_sub(stem, 1L, as.integer(max_stem_chars))
+  stem <- stringi::stri_replace_all_regex(stem, "[._-]+$", "")
+  if (!nzchar(stem) || grepl(
+      "^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$",
+      stem,
+      ignore.case = TRUE)) {
+    stem <- "busqueda"
+  }
+  paste0("ExciFinder_", stem, ".xlsx")
+}
+
+excifinder_dt_escape_columns <- function(table) {
+  setdiff(names(table), "Ficha técnica")
+}
+
 build_excifinder_server <- function(search_service) {
   if (!is.list(search_service) || !is.function(search_service$search_excipient)) {
     stop("`search_service` must expose `search_excipient()`.", call. = FALSE)
@@ -7,7 +41,18 @@ build_excifinder_server <- function(search_service) {
     latest_result <- shiny::reactiveVal(NULL)
 
     shiny::observeEvent(input$buscar, {
-      shiny::req(input$pa, input$excipiente)
+      validation_error <- tryCatch(
+        {
+          validate_search_input_text(input$pa, "El principio activo")
+          validate_search_input_text(input$excipiente, "El excipiente")
+          NULL
+        },
+        error = function(error) conditionMessage(error)
+      )
+      if (!is.null(validation_error)) {
+        shiny::showNotification(validation_error, type = "error")
+        return()
+      }
       result <- tryCatch(
         search_service$search_excipient(
           active_ingredient = input$pa,
@@ -76,7 +121,7 @@ build_excifinder_server <- function(search_service) {
       DT::datatable(
         table,
         rownames = FALSE,
-        escape = setdiff(names(table), "Ficha técnica"),
+        escape = excifinder_dt_escape_columns(table),
         options = list(pageLength = 15L, autoWidth = TRUE)
       )
     })
@@ -89,7 +134,7 @@ build_excifinder_server <- function(search_service) {
 
     output$downloadData <- shiny::downloadHandler(
       filename = function() {
-        paste0("ExciFinder_", gsub("[^[:alnum:]_-]+", "_", input$pa), ".xlsx")
+        excifinder_safe_filename(input$pa)
       },
       content = function(file) {
         openxlsx::write.xlsx(download_data(), file)

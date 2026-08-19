@@ -1,12 +1,3 @@
-library(shiny)
-library(shinydashboard)
-library(httr)
-library(jsonlite)
-library(tidyr)
-library(DT)
-library(stringi)
-library(openxlsx)
-
 for (domain_file in c(
     "medicinal_products.R",
     "excipients.R",
@@ -28,6 +19,7 @@ for (application_file in c(
 }
 
 for (adapter_file in c(
+    "http_policy.R",
     "cima_client.R",
     "cima_document_client.R",
     "cima_mapper.R",
@@ -69,4 +61,4 @@ search_service <- new_excipient_search_service(
 ui <- build_excifinder_ui()
 server <- build_excifinder_server(search_service)
 
-shinyApp(ui, server)
+shiny::shinyApp(ui, server)

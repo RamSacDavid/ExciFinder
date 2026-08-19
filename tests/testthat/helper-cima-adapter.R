@@ -18,6 +18,7 @@ sys.source(
 )
 
 for (adapter_file in c(
+    "http_policy.R",
     "cima_client.R",
     "cima_mapper.R",
     "cima_sources.R",

@@ -5,6 +5,20 @@
   invisible(search_result)
 }
 
+excifinder_excel_safe_text <- function(value) {
+  if (!is.character(value)) {
+    return(value)
+  }
+  dangerous <- !is.na(value) & grepl("^[=+@-]", value)
+  value[dangerous] <- paste0("'", value[dangerous])
+  value
+}
+
+.presenter_excel_safe_data <- function(data) {
+  data[] <- lapply(data, excifinder_excel_safe_text)
+  data
+}
+
 excifinder_status_label <- function(status) {
   labels <- c(
     identified = "Identificado",
@@ -226,7 +240,7 @@ present_search_export <- function(search_result) {
       stringsAsFactors = FALSE
     )
   })
-  do.call(rbind, rows)
+  .presenter_excel_safe_data(do.call(rbind, rows))
 }
 
 present_partial_errors <- function(search_result) {

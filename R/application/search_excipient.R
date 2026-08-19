@@ -5,6 +5,31 @@
   invisible(value)
 }
 
+search_input_max_chars <- function() {
+  200L
+}
+
+validate_search_input_text <- function(value, label) {
+  .excipient_assert_non_empty_string(label, "label")
+  if (!is.character(value) || length(value) != 1L || is.na(value) ||
+      !nzchar(trimws(value))) {
+    .excipient_application_abort(sprintf("%s no puede estar vacío.", label))
+  }
+  if (stringi::stri_detect_regex(value, "\\p{Cc}")) {
+    .excipient_application_abort(
+      sprintf("%s contiene caracteres de control no permitidos.", label)
+    )
+  }
+  if (stringi::stri_length(value) > search_input_max_chars()) {
+    .excipient_application_abort(sprintf(
+      "%s no puede superar los %d caracteres.",
+      label,
+      search_input_max_chars()
+    ))
+  }
+  invisible(value)
+}
+
 new_product_excipient_result <- function(
     product,
     formulations,
@@ -320,6 +345,7 @@ new_excipient_search_service <- function(
       active_ingredient,
       excipient_query,
       filters = list(authorized = TRUE, marketed = TRUE)) {
+    validate_search_input_text(active_ingredient, "El principio activo")
     if (!is.character(excipient_query) || length(excipient_query) != 1L ||
         is.na(excipient_query)) {
       .excipient_application_abort(
@@ -384,7 +410,6 @@ new_excipient_search_service <- function(
     } else {
       excipient <- resolution$candidates[[1]]
     }
-    .excipient_assert_non_empty_string(active_ingredient, "active_ingredient")
     filters <- .search_validate_filters(filters)
     query <- .search_query_dto(active_ingredient, excipient_query, filters)
 
