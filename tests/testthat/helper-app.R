@@ -29,6 +29,43 @@ load_app <- function() {
   app_env
 }
 
+load_legacy_engine <- function() {
+  legacy_env <- new.env(parent = globalenv())
+  legacy_env$`%>%` <- dplyr::`%>%`
+  legacy_env$filter <- dplyr::filter
+  legacy_env$bind_rows <- dplyr::bind_rows
+  legacy_env$arrange <- dplyr::arrange
+  legacy_env$stri_trans_general <- stringi::stri_trans_general
+  legacy_env$GET <- httr::GET
+  legacy_env$status_code <- httr::status_code
+  legacy_env$fromJSON <- jsonlite::fromJSON
+  legacy_env$withProgress <- shiny::withProgress
+  legacy_env$incProgress <- shiny::incProgress
+
+  for (legacy_file in c(
+      "text_normalization.R",
+      "cima_legacy.R",
+      "excipient_search_legacy.R")) {
+    sys.source(
+      file.path(project_root(), "R", legacy_file),
+      envir = legacy_env
+    )
+  }
+  legacy_env$server <- eval(quote(function(input, output, session) {
+    data_final <- shiny::eventReactive(input$buscar, {
+      shiny::req(input$pa, input$excipiente)
+      buscar_excipiente_legacy(
+        input$pa,
+        input$excipiente,
+        input$limite,
+        cache_pdf
+      )
+    })
+  }), envir = legacy_env)
+  legacy_env$cache_pdf <- new.env(parent = emptyenv())
+  legacy_env
+}
+
 with_mocked_get <- function(app_env, mock_get, code) {
   had_get <- exists("GET", envir = app_env, inherits = FALSE)
   if (had_get) {
@@ -48,7 +85,7 @@ with_mocked_get <- function(app_env, mock_get, code) {
 }
 
 run_search <- function(mock_get, pa = "ejemplo", excipiente = "lactosa") {
-  app_env <- load_app()
+  app_env <- load_legacy_engine()
   result <- NULL
 
   with_mocked_get(app_env, mock_get, {

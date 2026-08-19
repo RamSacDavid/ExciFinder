@@ -14,7 +14,7 @@ test_that("matching normalizes case and diacritics", {
 
 test_that("z is transformed to c in the current normalizer", {
   # KNOWN BASELINE BEHAVIOUR — scheduled for deliberate replacement
-  app_env <- load_app()
+  app_env <- load_legacy_engine()
 
   expect_equal(app_env$normalizar("Zinc"), "cinc")
 })

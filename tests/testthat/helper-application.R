@@ -29,3 +29,13 @@ for (application_file in c(
     envir = application_env
   )
 }
+
+for (ui_file in c(
+    "search_presenter.R",
+    "shiny_ui.R",
+    "shiny_server.R")) {
+  sys.source(
+    file.path(project_root(), "R", "ui", ui_file),
+    envir = application_env
+  )
+}

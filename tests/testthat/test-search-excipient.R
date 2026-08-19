@@ -28,7 +28,7 @@ test_that("application result DTOs enforce their contracts", {
   expect_s3_class(product_result, "excifinder_application_dto")
   expect_named(
     product_result,
-    c("product", "formulations", "presentations", "assessment")
+    c("product", "formulations", "presentations", "assessment", "source_artifacts")
   )
   expect_s3_class(search_result, "excipient_search_result")
   expect_named(search_result, c("query", "resolution", "results", "errors"))
@@ -438,4 +438,87 @@ test_that("product results are alphabetically stable and contain one product ass
         domain_env$medicinal_product_id(item$product)
       )
   }, logical(1))))
+})
+
+test_that("product result is self-contained for every attempt artifact", {
+  fixture <- make_single_product_sources("Lactosa", "Contiene lactosa")
+  result <- fixture$service$search_excipient("ingredient", "lactosa")
+  product_result <- result$results[[1]]
+  artifact_ids <- vapply(
+    product_result$source_artifacts,
+    `[[`,
+    character(1),
+    "id"
+  )
+  attempt_ids <- unlist(lapply(product_result$assessment$attempts, function(attempt) {
+    attempt$source_artifact_id
+  }), use.names = FALSE)
+
+  expect_identical(anyDuplicated(artifact_ids), 0L)
+  expect_true(all(attempt_ids %in% artifact_ids))
+  expect_true(all(vapply(attempt_ids, function(id) {
+    sum(artifact_ids == id) == 1L
+  }, logical(1))))
+  expect_true(any(vapply(product_result$source_artifacts, function(artifact) {
+    identical(artifact$artifact_type, "structured_record")
+  }, logical(1))))
+  expect_true(any(vapply(product_result$source_artifacts, function(artifact) {
+    identical(artifact$artifact_kind, "summary_of_product_characteristics")
+  }, logical(1))))
+})
+
+test_that("product result rejects missing and duplicate provenance", {
+  fixture <- make_single_product_sources("Lactosa", "Contiene lactosa")
+  product_result <- fixture$service$search_excipient(
+    "ingredient",
+    "lactosa"
+  )$results[[1]]
+
+  expect_error(
+    application_env$new_product_excipient_result(
+      product_result$product,
+      product_result$formulations,
+      product_result$presentations,
+      product_result$assessment,
+      source_artifacts = list()
+    ),
+    "assessment attempt artifact"
+  )
+  expect_error(
+    application_env$new_product_excipient_result(
+      product_result$product,
+      product_result$formulations,
+      product_result$presentations,
+      product_result$assessment,
+      source_artifacts = append(
+        product_result$source_artifacts,
+        list(product_result$source_artifacts[[1]])
+      )
+    ),
+    "unique IDs"
+  )
+})
+
+test_that("ambiguous document candidates remain available as provenance", {
+  product <- make_search_product("ambiguous-provenance", "Ambiguous Provenance")
+  product_id <- domain_env$medicinal_product_id(product)
+  same_date <- as.POSIXct("2026-01-01", tz = "UTC")
+  first <- make_search_document(product, "first", same_date)
+  second <- make_search_document(product, "second", same_date)
+  sources <- new_search_fake_sources(
+    products = list(product),
+    details = setNames(list(product), product_id),
+    artifacts = setNames(list(list(first, second)), product_id)
+  )
+  product_result <- make_search_service(sources)$search_excipient(
+    "ingredient",
+    "lactosa"
+  )$results[[1]]
+
+  expect_length(product_result$source_artifacts, 2L)
+  expect_identical(
+    sort(vapply(product_result$source_artifacts, `[[`, character(1), "id")),
+    sort(c(first$id, second$id))
+  )
+  expect_identical(product_result$assessment$factual_conclusion, "indeterminate")
 })

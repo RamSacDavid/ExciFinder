@@ -9,7 +9,8 @@ new_product_excipient_result <- function(
     product,
     formulations,
     presentations,
-    assessment) {
+    assessment,
+    source_artifacts = list()) {
   if (!inherits(product, "medicinal_product")) {
     .excipient_application_abort("`product` must be a `medicinal_product` object.")
   }
@@ -35,13 +36,36 @@ new_product_excipient_result <- function(
       "`assessment$subject_id` must match `medicinal_product_id(product)`."
     )
   }
+  if (!is.list(source_artifacts) || !all(vapply(
+      source_artifacts,
+      inherits,
+      logical(1),
+      "source_artifact"))) {
+    .excipient_application_abort(
+      "`source_artifacts` must contain only `source_artifact` objects."
+    )
+  }
+  artifact_ids <- vapply(source_artifacts, `[[`, character(1), "id")
+  if (anyDuplicated(artifact_ids)) {
+    .excipient_application_abort("`source_artifacts` must have unique IDs.")
+  }
+  attempt_artifact_ids <- unlist(lapply(assessment$attempts, function(attempt) {
+    attempt$source_artifact_id
+  }), use.names = FALSE)
+  if (length(attempt_artifact_ids) > 0L &&
+      !all(attempt_artifact_ids %in% artifact_ids)) {
+    .excipient_application_abort(
+      "Every assessment attempt artifact must exist in `source_artifacts`."
+    )
+  }
 
   structure(
     list(
       product = product,
       formulations = unname(formulations),
       presentations = unname(presentations),
-      assessment = assessment
+      assessment = assessment,
+      source_artifacts = unname(source_artifacts)
     ),
     class = c("product_excipient_result", "excifinder_application_dto")
   )
@@ -472,6 +496,7 @@ new_excipient_search_service <- function(
       }
 
       structured_snapshots <- list()
+      source_artifacts <- list()
       presentations <- list()
       for (formulation in formulations) {
         formulation_id <- formulation$id
@@ -496,6 +521,8 @@ new_excipient_search_service <- function(
         } else {
           structured_snapshots[[length(structured_snapshots) + 1L]] <-
             composition_call$value
+          source_artifacts[[length(source_artifacts) + 1L]] <-
+            composition_call$value$source_artifact
         }
 
         presentation_call <- .search_safe_call(function() {
@@ -564,6 +591,7 @@ new_excipient_search_service <- function(
               "summary_of_product_characteristics"
             )
           }, artifacts)
+          source_artifacts <- c(source_artifacts, artifacts)
           selection <- .search_select_document(artifacts, product_id)
           if (!is.null(selection$error)) {
             smpc_error <- selection$error
@@ -621,11 +649,16 @@ new_excipient_search_service <- function(
         structured_errors = structured_errors,
         smpc_error = smpc_error
       )
+      if (length(source_artifacts) > 0L) {
+        artifact_ids <- vapply(source_artifacts, `[[`, character(1), "id")
+        source_artifacts <- source_artifacts[!duplicated(artifact_ids)]
+      }
       results[[length(results) + 1L]] <- new_product_excipient_result(
         product,
         formulations,
         presentations,
-        assessment
+        assessment,
+        source_artifacts = source_artifacts
       )
     }
 

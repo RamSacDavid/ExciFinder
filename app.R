@@ -1,125 +1,72 @@
-# ============================================================
-# EXCIFINDER v1.0: VALL D'HEBRON (FINAL VERSION)
-# ============================================================
-
 library(shiny)
 library(shinydashboard)
 library(httr)
 library(jsonlite)
-library(dplyr)
 library(tidyr)
 library(DT)
 library(stringi)
-library(pdftools)
 library(openxlsx)
 
-cache_pdf <- new.env(parent = emptyenv())
+for (domain_file in c(
+    "medicinal_products.R",
+    "excipients.R",
+    "source_artifacts.R",
+    "evidence.R",
+    "verification.R")) {
+  source(file.path("R", "domain", domain_file), local = TRUE)
+}
 
-source("R/text_normalization.R", local = TRUE)
-source("R/cima_legacy.R", local = TRUE)
-source("R/excipient_search_legacy.R", local = TRUE)
+for (application_file in c(
+    "ports.R",
+    "excipient_taxonomy.R",
+    "literal_excipient.R",
+    "excipient_matching.R",
+    "excipient_evidence_builder.R",
+    "excipient_assessment_policy.R",
+    "search_excipient.R")) {
+  source(file.path("R", "application", application_file), local = TRUE)
+}
 
-ui <- dashboardPage(
-  header = dashboardHeader(title = "ExciFinder v.1.0"),
-  sidebar = dashboardSidebar(
-    div(style="padding: 15px;", 
-        textInput("pa", "Principio Activo:", value = ""),
-        textInput("excipiente", "Excipiente:", value = ""),
-        numericInput("limite", "Máx. Medicamentos:", value = 15, min = 1, max = 50),
-        br(),
-        actionButton("buscar", "BUSCAR", icon = icon("search"), 
-                     style="background-color: #004EB3; color: white; border: none; font-weight: bold; width: 100%; height: 40px;"),
-        
-        hr(),
-        downloadButton("downloadData", "Exportar Excel", style="width: 100%;"),
-        br(), br(),
-        div(style="color: #ffffff; font-size: 11px; line-height: 1.4;",
-            tags$p(tags$b("Aviso Legal:")),
-            tags$p("Información basada en la API de la AEMPS. ExciFinder es una herramienta de apoyo. Verifique siempre con la Ficha Técnica oficial.")
-        )
-    )
-  ),
-  body = dashboardBody(
-    tags$head(
-      tags$style(HTML("
-        /* Tipografía Verdana */
-        body, .main-header .logo, .main-header .navbar, .main-sidebar, .content-header {
-          font-family: 'Verdana', sans-serif !important;
-        }
-        
-        /* Color Primario Azul Campus */
-        .main-header .logo, .main-header .navbar { 
-          background-color: #004EB3 !important; 
-        }
-        
-        /* Fondo Gris Pálido */
-        .content-wrapper, .right-side {
-          background-color: #B8BEC4 !important;
-        }
-        
-        /* Cabeceras de cajas en blanco */
-        .box-header .box-title {
-          color: #ffffff !important;
-          font-weight: bold;
-        }
-        
-        .box.status-danger { border-top-color: #cc0000 !important; }
-        .box.status-success { border-top-color: #28a745 !important; }
-        .box { border-radius: 0px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
-        
-        /* Tablas */
-        .dataTables_wrapper { font-size: 12px; background: white; padding: 10px; border-radius: 4px; }
-      "))
-    ),
-    fluidRow(
-      column(width = 6,
-             box(title = "CONTIENE EXCIPIENTE", status = "danger", solidHeader = TRUE, width = NULL,
-                 DTOutput("tabla_si"))
-      ),
-      column(width = 6,
-             box(title = "NO CONTIENE EXCIPIENTE", status = "success", solidHeader = TRUE, width = NULL,
-                 DTOutput("tabla_no"))
-      )
-    )
-  )
+for (adapter_file in c(
+    "cima_client.R",
+    "cima_document_client.R",
+    "cima_mapper.R",
+    "cima_document_mapper.R",
+    "cima_sources.R",
+    "cima_document_sources.R")) {
+  source(file.path("R", "adapters", adapter_file), local = TRUE)
+}
+
+for (ui_file in c(
+    "search_presenter.R",
+    "shiny_ui.R",
+    "shiny_server.R")) {
+  source(file.path("R", "ui", ui_file), local = TRUE)
+}
+
+cima_client <- new_cima_client()
+document_client <- new_cima_document_client()
+product_source <- new_cima_product_source_port(cima_client)
+composition_source <- new_cima_composition_source_port(cima_client)
+artifact_source <- new_cima_document_source_artifact_port(
+  cima_client,
+  document_client
 )
 
-server <- function(input, output, session) {
-  data_final <- eventReactive(input$buscar, {
-    req(input$pa, input$excipiente)
-    
-    buscar_excipiente_legacy(
-      input$pa,
-      input$excipiente,
-      input$limite,
-      cache_pdf
-    )
-  })
-  
-  output$tabla_si <- renderDT({
-    req(data_final())
-    df <- data_final() %>% filter(estado == TRUE) %>%
-      mutate(Link = paste0("<a href='", url, "' target='_blank' style='color:#cc0000; font-weight:bold;'>[PDF]</a>")) %>%
-      select(Link, Medicamento = nombre)
-    datatable(df, escape = FALSE, rownames = FALSE, options = list(dom='tp', pageLength=15)) %>%
-      formatStyle('Medicamento', color = '#cc0000', fontWeight = 'bold')
-  })
-  
-  output$tabla_no <- renderDT({
-    req(data_final())
-    df <- data_final() %>% filter(estado == FALSE) %>%
-      mutate(Link = paste0("<a href='", url, "' target='_blank' style='color:#28a745; font-weight:bold;'>[PDF]</a>")) %>%
-      select(Medicamento = nombre, Link)
-    datatable(df, escape = FALSE, rownames = FALSE, options = list(dom='tp', pageLength=15)) %>%
-      formatStyle('Medicamento', color = '#28a745')
-  })
-  
-  output$downloadData <- downloadHandler(
-    filename = function() { paste0("ExciFinder_", input$pa, ".xlsx") },
-    content = function(file) {
-      write.xlsx(data_final() %>% select(Medicamento=nombre, Contiene=estado, URL_Ficha=url), file)
-    }
-  )
-}
+taxonomy <- new_excipient_taxonomy(
+  version = "bootstrap-v1",
+  excipients = list()
+)
+search_service <- new_excipient_search_service(
+  product_source = product_source,
+  composition_source = composition_source,
+  artifact_source = artifact_source,
+  taxonomy = taxonomy,
+  matcher_version = "controlled-term-v1",
+  allow_literal_fallback = TRUE
+)
+
+ui <- build_excifinder_ui()
+server <- build_excifinder_server(search_service)
 
 shinyApp(ui, server)
