@@ -1,3 +1,5 @@
+source(file.path("R", "version.R"), local = TRUE)
+
 for (domain_file in c(
     "medicinal_products.R",
     "excipients.R",

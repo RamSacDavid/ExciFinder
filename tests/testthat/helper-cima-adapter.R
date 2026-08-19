@@ -1,5 +1,10 @@
 cima_adapter_env <- new.env(parent = baseenv())
 
+sys.source(
+  file.path(project_root(), "R", "version.R"),
+  envir = cima_adapter_env
+)
+
 for (domain_file in c(
     "medicinal_products.R",
     "excipients.R",

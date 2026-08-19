@@ -95,6 +95,6 @@ Los datos y documentos proceden de CIMA, servicio de la AEMPS. ExciFinder no imp
 
 Para comunicar resultados incorrectos, fallos reproducibles o problemas de documentación, abra un GitHub Issue en este repositorio evitando incluir datos personales o clínicos identificables.
 
-## Licencia
+## License
 
-Este repositorio todavía no declara una licencia. La elección corresponde al propietario y debe resolverse antes de un release público.
+ExciFinder is licensed under the GNU Affero General Public License v3.0 only (AGPL-3.0-only).

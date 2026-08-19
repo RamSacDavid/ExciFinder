@@ -1,5 +1,5 @@
 excifinder_http_user_agent <- function() {
-  "ExciFinder/1.0"
+  paste0("ExciFinder/", excifinder_version())
 }
 
 excifinder_http_retry_statuses <- function() {
