@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-Target release: 2.0.0
+## 2.0.0 - 2026-08-19
 
 - Nueva arquitectura separada en domain, application, adapters y UI.
 - Provenance autocontenida para fuentes y evidencias de cada resultado.
