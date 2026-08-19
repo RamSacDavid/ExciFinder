@@ -1,0 +1,30 @@
+{
+  "nregistro": "10001",
+  "nombre": "MEDICINE ALPHA/BETA 10 MG/5 MG TABLETS",
+  "pactivos": "INGREDIENT ALPHA, INGREDIENT BETA",
+  "labtitular": "EXAMPLE LAB",
+  "estado": {"aut": 1704067200000},
+  "comerc": true,
+  "principiosActivos": [
+    {"id": 501, "codigo": "RAW-A", "nombre": "INGREDIENT ALPHA", "cantidad": "10", "unidad": "mg", "orden": 1},
+    {"id": 502, "codigo": "RAW-B", "nombre": "INGREDIENT BETA", "cantidad": "5", "unidad": "mg", "orden": 2}
+  ],
+  "excipientes": [
+    {"id": 701, "nombre": "Lactosa monohidrato", "cantidad": "25", "unidad": "mg", "orden": 1},
+    {"id": 702, "nombre": "Almidón de maíz", "orden": 2}
+  ],
+  "viasAdministracion": [
+    {"id": 1, "codigo": "OR", "nombre": "Vía oral"},
+    {"id": 2, "codigo": "IV", "nombre": "Vía intravenosa"}
+  ],
+  "presentaciones": [
+    {"cn": "600001", "nombre": "28 tablets", "estado": {"aut": 1704067200000}, "comerc": true},
+    {"cn": "600002", "nombre": "56 tablets", "estado": {"susp": 1711929600000, "aut": 1704067200000}, "comerc": false}
+  ],
+  "formaFarmaceutica": {"id": 10, "codigo": "TAB", "nombre": "Comprimido"},
+  "dosis": "10 mg/5 mg",
+  "docs": [
+    {"tipo": 1, "url": "https://example.invalid/technical.pdf", "secc": true, "urlHtml": "https://example.invalid/technical", "fecha": 1704067200000},
+    {"tipo": 2, "url": "https://example.invalid/leaflet.pdf", "secc": true, "urlHtml": "https://example.invalid/leaflet", "fecha": 1704067200000}
+  ]
+}

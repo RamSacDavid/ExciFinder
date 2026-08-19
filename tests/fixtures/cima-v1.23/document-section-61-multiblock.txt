@@ -1,0 +1,9 @@
+6.1 Lista de excipientes
+
+Presentación/tipo A
+- Excipiente X
+- Excipiente Y
+
+Presentación/tipo B
+- Excipiente X
+- Excipiente Z

@@ -1,0 +1,12 @@
+{
+  "nregistro": "20002",
+  "nombre": "MEDICINE NON SEGMENTED DOCUMENT FIXTURE",
+  "docs": [
+    {
+      "tipo": 1,
+      "url": "https://example.invalid/20002/smpc-v1.pdf",
+      "secc": false,
+      "fecha": 1704067200000
+    }
+  ]
+}
