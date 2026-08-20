@@ -214,6 +214,267 @@ excifinder_resolution_label <- function(strategy) {
   paste(values, collapse = " · ")
 }
 
+.presenter_display_value <- function(value) {
+  if (!is.character(value) || length(value) == 0L ||
+      all(is.na(value) | !nzchar(value))) {
+    return("No disponible")
+  }
+  values <- unique(value[!is.na(value) & nzchar(value)])
+  if (length(values) == 0L) "No disponible" else paste(values, collapse = " · ")
+}
+
+.presenter_formulation_routes <- function(product_result) {
+  routes <- unique(unlist(lapply(
+    product_result$formulations,
+    function(formulation) formulation$routes
+  ), use.names = FALSE))
+  .presenter_display_value(routes)
+}
+
+excifinder_resolution_summary_label <- function(strategy) {
+  labels <- c(
+    literal = "Coincidencia literal normalizada",
+    taxonomy = "Términos controlados"
+  )
+  if (!strategy %in% names(labels)) return("Método no disponible")
+  unname(labels[[strategy]])
+}
+
+excifinder_attempt_outcome_label <- function(outcome) {
+  labels <- c(
+    evidence_found = "Evidencia encontrada",
+    no_evidence = "Sin evidencia",
+    inconclusive = "No concluyente",
+    not_attempted = "No verificado"
+  )
+  if (!outcome %in% names(labels)) return("Resultado no disponible")
+  unname(labels[[outcome]])
+}
+
+excifinder_extraction_status_label <- function(status) {
+  labels <- c(
+    complete = "Verificación completa",
+    partial = "Verificación parcial",
+    failed = "Verificación fallida",
+    not_attempted = "No realizada"
+  )
+  if (!status %in% names(labels)) return("Estado no disponible")
+  unname(labels[[status]])
+}
+
+.presenter_clinical_artifact_label <- function(artifact, section = NULL) {
+  if (identical(artifact$artifact_type, "structured_record")) {
+    return("CIMA estructurado")
+  }
+  if (identical(
+      artifact$artifact_kind,
+      "summary_of_product_characteristics")) {
+    return(if (is.null(section)) {
+      "Ficha técnica"
+    } else {
+      paste0("Ficha técnica (sección ", section, ")")
+    })
+  }
+  "Fuente oficial"
+}
+
+.presenter_clinical_sources <- function(product_result) {
+  artifact_map <- .presenter_artifact_map(product_result)
+  attempts <- Filter(function(attempt) {
+    !is.null(attempt$source_artifact_id) &&
+      attempt$source_artifact_id %in% names(artifact_map)
+  }, product_result$assessment$attempts)
+  if (length(attempts) == 0L) return("Sin fuente verificada")
+  paste(unique(vapply(attempts, function(attempt) {
+    .presenter_clinical_artifact_label(
+      artifact_map[[attempt$source_artifact_id]],
+      attempt$section
+    )
+  }, character(1))), collapse = " · ")
+}
+
+.presenter_clinical_attempts <- function(product_result) {
+  artifact_map <- .presenter_artifact_map(product_result)
+  lapply(product_result$assessment$attempts, function(attempt) {
+    artifact <- if (!is.null(attempt$source_artifact_id) &&
+        attempt$source_artifact_id %in% names(artifact_map)) {
+      artifact_map[[attempt$source_artifact_id]]
+    } else {
+      NULL
+    }
+    list(
+      source = if (is.null(artifact)) {
+        "Fuente no disponible"
+      } else {
+        .presenter_clinical_artifact_label(artifact, attempt$section)
+      },
+      outcome = excifinder_attempt_outcome_label(attempt$outcome),
+      extraction_status = excifinder_extraction_status_label(
+        attempt$extraction_status
+      )
+    )
+  })
+}
+
+.presenter_clinical_evidence <- function(product_result) {
+  artifact_map <- .presenter_artifact_map(product_result)
+  lapply(.presenter_evidence(product_result), function(evidence) {
+    artifact <- artifact_map[[evidence$source_artifact_id]]
+    list(
+      source = if (is.null(artifact)) {
+        "Fuente no disponible"
+      } else {
+        .presenter_clinical_artifact_label(artifact, evidence$section)
+      },
+      section = evidence$section,
+      matched_term = evidence$matched_term,
+      excerpt = evidence$excerpt
+    )
+  })
+}
+
+.presenter_clinical_smpc_links <- function(product_result) {
+  artifacts <- .presenter_smpc_artifacts(product_result)
+  if (length(artifacts) == 0L) return(list())
+  urls <- vapply(artifacts, `[[`, character(1), "url")
+  artifacts <- artifacts[!duplicated(urls)]
+  lapply(seq_along(artifacts), function(index) {
+    list(
+      label = if (length(artifacts) == 1L) {
+        "Abrir ficha técnica"
+      } else {
+        paste("Abrir ficha técnica", index)
+      },
+      url = artifacts[[index]]$url
+    )
+  })
+}
+
+.presenter_no_evidence_message <- function(conclusion) {
+  switch(
+    conclusion,
+    not_identified = "Sin coincidencias en fuentes verificadas.",
+    indeterminate = "No se dispone de evidencia concluyente.",
+    "No se dispone de evidencia textual."
+  )
+}
+
+present_clinical_product <- function(search_result, product_result) {
+  .presenter_assert_search_result(search_result)
+  if (!inherits(product_result, "product_excipient_result")) {
+    stop("`product_result` must be a `product_excipient_result`.", call. = FALSE)
+  }
+  conclusion <- product_result$assessment$factual_conclusion
+  evidence <- .presenter_clinical_evidence(product_result)
+  list(
+    id = medicinal_product_id(product_result$product),
+    name = product_result$product$name,
+    active_ingredient = .presenter_display_value(
+      search_result$query$active_ingredient
+    ),
+    conclusion = conclusion,
+    status_label = excifinder_status_label(conclusion),
+    state_class = excifinder_state_class(conclusion),
+    registration_number = product_result$product$registration_number,
+    fields = list(
+      dose = .presenter_display_value(.presenter_formulation_values(
+        product_result, "strength"
+      )),
+      pharmaceutical_form = .presenter_display_value(
+        .presenter_formulation_values(product_result, "pharmaceutical_form")
+      ),
+      administration_route = .presenter_formulation_routes(product_result),
+      excipient = .presenter_display_value(search_result$query$excipient),
+      coverage = excifinder_coverage_label(
+        product_result$assessment$verification_coverage
+      ),
+      sources = .presenter_clinical_sources(product_result)
+    ),
+    attempts = .presenter_clinical_attempts(product_result),
+    evidence = evidence,
+    no_evidence_message = if (length(evidence) == 0L) {
+      .presenter_no_evidence_message(conclusion)
+    } else {
+      NULL
+    },
+    smpc_links = .presenter_clinical_smpc_links(product_result)
+  )
+}
+
+present_search_master_groups <- function(search_result) {
+  .presenter_assert_search_result(search_result)
+  titles <- c(
+    identified = "IDENTIFICADO",
+    not_identified = "NO IDENTIFICADO EN FUENTES VERIFICADAS",
+    indeterminate = "NO VERIFICABLE",
+    conflicting = "FUENTES DISCORDANTES"
+  )
+  groups <- split_search_results_by_conclusion(search_result)
+  visible <- names(groups)[lengths(groups) > 0L]
+  lapply(visible, function(conclusion) {
+    results <- groups[[conclusion]]
+    list(
+      conclusion = conclusion,
+      label = unname(titles[[conclusion]]),
+      state_class = excifinder_state_class(conclusion),
+      count = length(results),
+      items = lapply(results, function(product_result) {
+        list(
+          id = medicinal_product_id(product_result$product),
+          name = product_result$product$name,
+          dose = .presenter_display_value(.presenter_formulation_values(
+            product_result, "strength"
+          )),
+          registration_number = product_result$product$registration_number
+        )
+      })
+    )
+  })
+}
+
+present_search_context <- function(search_result) {
+  .presenter_assert_search_result(search_result)
+  list(
+    active_ingredient = .presenter_display_value(
+      search_result$query$active_ingredient
+    ),
+    excipient = .presenter_display_value(search_result$query$excipient),
+    product_count = length(search_result$results),
+    method = excifinder_resolution_summary_label(
+      search_result$resolution$strategy
+    )
+  )
+}
+
+present_search_browser <- function(search_result, selected_product_id = NULL) {
+  .presenter_assert_search_result(search_result)
+  if (!identical(search_result$resolution$status, "resolved") ||
+      length(search_result$results) == 0L) {
+    return(NULL)
+  }
+  groups <- present_search_master_groups(search_result)
+  ordered_items <- unlist(lapply(groups, `[[`, "items"), recursive = FALSE)
+  available_ids <- vapply(ordered_items, `[[`, character(1), "id")
+  if (!is.character(selected_product_id) || length(selected_product_id) != 1L ||
+      is.na(selected_product_id) || !selected_product_id %in% available_ids) {
+    selected_product_id <- available_ids[[1L]]
+  }
+  selected_index <- match(selected_product_id, vapply(
+    search_result$results,
+    function(item) medicinal_product_id(item$product),
+    character(1)
+  ))
+  list(
+    context = present_search_context(search_result),
+    groups = groups,
+    selected_product_id = selected_product_id,
+    detail = present_clinical_product(
+      search_result,
+      search_result$results[[selected_index]]
+    )
+  )
+}
+
 .presenter_empty_table <- function() {
   data.frame(
     Estado = character(),
