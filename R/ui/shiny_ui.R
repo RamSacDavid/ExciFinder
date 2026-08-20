@@ -28,106 +28,137 @@ excifinder_state_box <- function(conclusion, output_id) {
     conflicting = "FUENTES DISCORDANTES"
   )
   shiny::div(
-    class = paste("excifinder-state-group", excifinder_state_class(conclusion)),
-    shinydashboard::box(
-      title = unname(titles[[conclusion]]),
-      solidHeader = TRUE,
-      width = NULL,
-      DT::DTOutput(output_id)
+    class = paste(
+      "excifinder-state-group",
+      excifinder_state_class(conclusion)
+    ),
+    shiny::div(
+      class = "excifinder-state-card",
+      shiny::div(
+        class = "excifinder-state-header",
+        unname(titles[[conclusion]])
+      ),
+      shiny::div(
+        class = "excifinder-state-body",
+        DT::DTOutput(output_id)
+      )
     )
   )
 }
 
 build_excifinder_ui <- function() {
-  shinydashboard::dashboardPage(
-    header = shinydashboard::dashboardHeader(title = "ExciFinder"),
-    sidebar = shinydashboard::dashboardSidebar(
+  shiny::fluidPage(
+    class = "excifinder-app",
+    shiny::tags$head(
+      shiny::tags$title("ExciFinder"),
+      shiny::tags$meta(
+        name = "viewport",
+        content = "width=device-width, initial-scale=1"
+      ),
+      shiny::tags$link(
+        rel = "stylesheet",
+        type = "text/css",
+        href = "excifinder.css"
+      )
+    ),
+    shiny::tags$header(
+      class = "excifinder-header",
       shiny::div(
-        style = "padding: 15px;",
-        excifinder_predictive_input("pa", "Principio activo:", "pa_query"),
-        excifinder_predictive_input(
-          "excipiente", "Excipiente:", "excipiente_query"
-        ),
-        shiny::p(
-          class = "excifinder-input-help",
-          "Las sugerencias de excipiente proceden de datos estructurados disponibles y pueden no ser exhaustivas."
-        ),
-        shiny::actionButton(
-          "buscar",
-          "BUSCAR",
-          icon = shiny::icon("search"),
-          style = paste(
-            "background-color: #004EB3; color: white; border: none;",
-            "font-weight: bold; width: 100%; height: 40px;"
-          )
-        ),
-        shiny::p(
-          style = "margin-top: 10px; font-size: 12px;",
-          "Se consultan medicamentos autorizados y comercializados."
-        ),
-        shiny::hr(),
-        shiny::downloadButton(
-          "downloadData",
-          "Exportar Excel",
-          style = "width: 100%;"
-        ),
-        shiny::br(), shiny::br(),
+        class = "excifinder-header-inner",
+        shiny::div(class = "excifinder-brand", "ExciFinder"),
         shiny::div(
-          style = "color: #ffffff; font-size: 11px; line-height: 1.4;",
-          shiny::tags$p(shiny::tags$b("Aviso:")),
-          shiny::tags$p(paste(
-            "ExciFinder organiza información procedente de fuentes oficiales de CIMA/AEMPS.",
-            "Los resultados reflejan únicamente las fuentes que pudieron analizarse.",
-            "“No identificado en fuentes verificadas” no debe interpretarse como garantía absoluta de ausencia",
-            "y la información debe verificarse en la ficha técnica oficial antes de tomar decisiones clínicas."
-          )),
-          shiny::tags$p(paste(
-            "La evaluación actual es a nivel del medicamento autorizado,",
-            "no de cada presentación individual."
-          ))
+          class = "excifinder-tagline",
+          "Consulta de excipientes en medicamentos"
         )
       )
     ),
-    body = shinydashboard::dashboardBody(
-      shiny::tags$head(shiny::tags$style(shiny::HTML("\
-        body, .main-header .logo, .main-header .navbar, .main-sidebar, .content-header {
-          font-family: Verdana, sans-serif !important;
-        }
-        .main-header .logo, .main-header .navbar { background-color: #004EB3 !important; }
-        .content-wrapper, .right-side { background-color: #B8BEC4 !important; }
-        .box-header .box-title { color: #ffffff !important; font-weight: bold; }
-        .dataTables_wrapper { font-size: 12px; background: white; padding: 10px; }
-        .excifinder-message { margin: 8px 0; font-weight: 600; }
-        .excifinder-warning { margin: 8px 0; color: #7a4b00; font-weight: 600; }
-        .excifinder-input-help { color: #e9eef5; font-size: 11px; line-height: 1.35; }
-        .excifinder-state-group { width: 100%; overflow: hidden; }
-        .excifinder-state-group .box { border-top: 0; background: #ffffff; width: 100%; }
-        .excifinder-state-group .box-header { color: #ffffff; }
-        .excifinder-state-group .dataTables_wrapper { width: 100%; overflow: hidden; }
-        .excifinder-state-group .dataTables_scroll { max-width: 100%; }
-        .excifinder-state-group table.dataTable { width: 100% !important; }
-        .state-identified .box { background: #fbe9e9; }
-        .state-identified .box-header { background: #a82d35; }
-        .state-not-identified .box { background: #e8f5ec; }
-        .state-not-identified .box-header { background: #287a45; }
-        .state-indeterminate .box { background: #eeeeee; }
-        .state-indeterminate .box-header { background: #5f6870; }
-        .state-conflicting .box { background: #fff0df; }
-        .state-conflicting .box-header { background: #b85f00; }
-      "))),
-      shiny::fluidRow(
-        shiny::column(
-          width = 12,
-          shiny::p(
-            "La evaluación actual se realiza a nivel del medicamento autorizado (número de registro), no de cada presentación comercial individual."
+    shiny::tags$main(
+      class = "excifinder-main",
+      shiny::tags$section(
+        class = "excifinder-search-card",
+        shiny::div(
+          class = "excifinder-search-intro",
+          shiny::tags$h1("Consulta de excipientes"),
+          shiny::tags$p(
+            "Busca un principio activo y comprueba un excipiente en medicamentos autorizados."
+          )
+        ),
+        shiny::div(
+          class = "excifinder-search-form",
+          shiny::div(
+            class = "excifinder-form-field",
+            excifinder_predictive_input(
+              "pa", "Principio activo:", "pa_query"
+            )
           ),
-          shiny::uiOutput("search_method"),
-          shiny::uiOutput("search_message"),
-          shiny::uiOutput("partial_warning"),
-          shiny::uiOutput("partial_errors")
+          shiny::div(
+            class = "excifinder-form-field",
+            excifinder_predictive_input(
+              "excipiente", "Excipiente:", "excipiente_query"
+            ),
+            shiny::p(
+              class = "excifinder-input-help",
+              "Las sugerencias de excipiente proceden de datos estructurados disponibles y pueden no ser exhaustivas."
+            )
+          ),
+          shiny::div(
+            class = "excifinder-search-action",
+            shiny::actionButton(
+              "buscar",
+              "BUSCAR",
+              icon = shiny::icon("search"),
+              class = "excifinder-button-primary"
+            )
+          )
+        ),
+        shiny::p(
+          class = "excifinder-search-scope",
+          "Se consultan medicamentos autorizados y comercializados."
         )
       ),
-      shiny::uiOutput("result_groups")
+      shiny::tags$section(
+        class = "excifinder-utility-row",
+        shiny::div(
+          class = "excifinder-scope-summary",
+          shiny::tags$span(class = "excifinder-eyebrow", "Alcance"),
+          shiny::tags$p(
+            "Evaluación por medicamento autorizado (número de registro), no por presentación comercial individual."
+          )
+        ),
+        shiny::div(
+          class = "excifinder-export-action",
+          shiny::downloadButton(
+            "downloadData",
+            "Exportar Excel",
+            class = "excifinder-button-secondary"
+          )
+        )
+      ),
+      shiny::div(
+        class = "excifinder-feedback",
+        shiny::uiOutput("search_method"),
+        shiny::uiOutput("search_message"),
+        shiny::uiOutput("partial_warning"),
+        shiny::uiOutput("partial_errors")
+      ),
+      shiny::div(
+        class = "excifinder-results",
+        shiny::uiOutput("result_groups")
+      ),
+      shiny::tags$aside(
+        class = "excifinder-clinical-notice",
+        shiny::tags$h2("Aviso clínico"),
+        shiny::tags$p(paste(
+          "ExciFinder organiza información procedente de fuentes oficiales de CIMA/AEMPS.",
+          "Los resultados reflejan únicamente las fuentes que pudieron analizarse.",
+          "“No identificado en fuentes verificadas” no debe interpretarse como garantía absoluta de ausencia",
+          "y la información debe verificarse en la ficha técnica oficial antes de tomar decisiones clínicas."
+        )),
+        shiny::tags$p(paste(
+          "La evaluación actual es a nivel del medicamento autorizado,",
+          "no de cada presentación individual."
+        ))
+      )
     )
   )
 }

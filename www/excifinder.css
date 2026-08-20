@@ -1,0 +1,428 @@
+/* Tokens and base --------------------------------------------------------- */
+:root {
+  --excifinder-blue: #004eb3;
+  --excifinder-blue-dark: #003b87;
+  --excifinder-bg: #f4f7fa;
+  --excifinder-surface: #ffffff;
+  --excifinder-text: #1c2a38;
+  --excifinder-muted: #5e6b78;
+  --excifinder-border: #dce3ea;
+  --excifinder-radius: 12px;
+  --excifinder-shadow: 0 4px 16px rgba(28, 42, 56, 0.06);
+}
+
+html {
+  box-sizing: border-box;
+  background: var(--excifinder-bg);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+body,
+.excifinder-app {
+  min-height: 100vh;
+  color: var(--excifinder-text);
+  background: var(--excifinder-bg);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial,
+    sans-serif;
+}
+
+.excifinder-app.container-fluid {
+  padding: 0;
+}
+
+/* Typography -------------------------------------------------------------- */
+.excifinder-app h1,
+.excifinder-app h2,
+.excifinder-app p {
+  margin-top: 0;
+}
+
+.excifinder-search-intro h1 {
+  margin-bottom: 6px;
+  font-size: clamp(22px, 4vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.excifinder-search-intro p,
+.excifinder-scope-summary p {
+  color: var(--excifinder-muted);
+}
+
+.excifinder-eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--excifinder-blue);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Header ------------------------------------------------------------------ */
+.excifinder-header {
+  width: 100%;
+  background: var(--excifinder-surface);
+  border-bottom: 1px solid var(--excifinder-border);
+}
+
+.excifinder-header-inner {
+  width: min(100% - 32px, 1180px);
+  margin: 0 auto;
+  padding: 18px 0;
+}
+
+.excifinder-brand {
+  color: var(--excifinder-blue);
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+
+.excifinder-tagline {
+  margin-top: 2px;
+  color: var(--excifinder-muted);
+  font-size: 14px;
+}
+
+/* Main layout ------------------------------------------------------------- */
+.excifinder-main {
+  width: min(100% - 32px, 1180px);
+  margin: 0 auto;
+  padding: 28px 0 44px;
+}
+
+/* Search card ------------------------------------------------------------- */
+.excifinder-search-card {
+  padding: 20px;
+  background: var(--excifinder-surface);
+  border: 1px solid var(--excifinder-border);
+  border-radius: var(--excifinder-radius);
+  box-shadow: var(--excifinder-shadow);
+}
+
+.excifinder-search-intro {
+  margin-bottom: 16px;
+}
+
+.excifinder-search-intro p,
+.excifinder-search-scope,
+.excifinder-input-help {
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+.excifinder-search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.excifinder-form-field,
+.excifinder-search-action {
+  min-width: 0;
+}
+
+.excifinder-form-field .form-group {
+  margin-bottom: 0;
+}
+
+/* Form controls and selectize -------------------------------------------- */
+.excifinder-app label {
+  margin-bottom: 7px;
+  color: var(--excifinder-text);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.excifinder-app .selectize-control {
+  margin-bottom: 0;
+}
+
+.excifinder-app .selectize-input {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #b8c4cf;
+  border-radius: 8px;
+  box-shadow: none;
+  font-size: 16px;
+}
+
+.excifinder-app .selectize-input.focus {
+  border-color: var(--excifinder-blue);
+  box-shadow: 0 0 0 3px rgba(0, 78, 179, 0.14);
+}
+
+.excifinder-app .selectize-dropdown {
+  border-color: #b8c4cf;
+  font-size: 15px;
+}
+
+.excifinder-input-help {
+  margin-top: 6px;
+  color: var(--excifinder-muted);
+  font-size: 12px;
+}
+
+.excifinder-search-scope {
+  margin-top: 12px;
+  color: var(--excifinder-muted);
+  font-size: 13px;
+}
+
+/* Buttons ----------------------------------------------------------------- */
+.excifinder-app .btn {
+  min-height: 44px;
+  border-radius: 8px;
+  font-weight: 700;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.excifinder-app .excifinder-button-primary {
+  width: 100%;
+  color: #ffffff;
+  background: var(--excifinder-blue);
+  border: 1px solid var(--excifinder-blue);
+}
+
+.excifinder-app .excifinder-button-primary:hover,
+.excifinder-app .excifinder-button-primary:focus {
+  color: #ffffff;
+  background: var(--excifinder-blue-dark);
+  border-color: var(--excifinder-blue-dark);
+}
+
+.excifinder-app .excifinder-button-secondary {
+  width: 100%;
+  color: var(--excifinder-blue);
+  background: #ffffff;
+  border: 1px solid var(--excifinder-blue);
+}
+
+.excifinder-app .excifinder-button-secondary:hover,
+.excifinder-app .excifinder-button-secondary:focus {
+  color: var(--excifinder-blue-dark);
+  background: #eef5ff;
+  border-color: var(--excifinder-blue-dark);
+}
+
+/* Utility row ------------------------------------------------------------- */
+.excifinder-utility-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 18px 0;
+  padding: 18px 20px;
+  background: var(--excifinder-surface);
+  border: 1px solid var(--excifinder-border);
+  border-radius: 10px;
+}
+
+.excifinder-scope-summary p {
+  margin-bottom: 0;
+  line-height: 1.45;
+}
+
+/* Messages ---------------------------------------------------------------- */
+.excifinder-feedback:empty {
+  display: none;
+}
+
+.excifinder-feedback:not(:empty) {
+  margin-bottom: 18px;
+  padding: 2px 4px;
+}
+
+.excifinder-message,
+.excifinder-warning {
+  margin: 8px 0;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.excifinder-warning {
+  color: #7a4b00;
+}
+
+.excifinder-feedback details {
+  margin-top: 10px;
+}
+
+/* Result containers ------------------------------------------------------- */
+.excifinder-results .row {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.excifinder-results .row > [class*="col-"] {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.excifinder-state-group {
+  width: 100%;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.excifinder-state-card {
+  width: 100%;
+  overflow: hidden;
+  background: var(--excifinder-surface);
+  border: 1px solid var(--excifinder-border);
+  border-radius: var(--excifinder-radius);
+  box-shadow: var(--excifinder-shadow);
+}
+
+.excifinder-state-header {
+  padding: 12px 16px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.excifinder-state-body {
+  width: 100%;
+  overflow: hidden;
+}
+
+.excifinder-state-group .dataTables_wrapper {
+  width: 100%;
+  padding: 12px;
+  overflow: hidden;
+  background: transparent;
+  font-size: 12px;
+}
+
+.excifinder-state-group .dataTables_scroll {
+  max-width: 100%;
+}
+
+.excifinder-state-group table.dataTable {
+  width: 100% !important;
+}
+
+/* State colours ----------------------------------------------------------- */
+.state-identified .excifinder-state-card {
+  background: #fbe9e9;
+}
+
+.state-identified .excifinder-state-header {
+  background: #a82d35;
+}
+
+.state-not-identified .excifinder-state-card {
+  background: #e8f5ec;
+}
+
+.state-not-identified .excifinder-state-header {
+  background: #287a45;
+}
+
+.state-indeterminate .excifinder-state-card {
+  background: #eeeeee;
+}
+
+.state-indeterminate .excifinder-state-header {
+  background: #5f6870;
+}
+
+.state-conflicting .excifinder-state-card {
+  background: #fff0df;
+}
+
+.state-conflicting .excifinder-state-header {
+  background: #b85f00;
+}
+
+/* Clinical notice --------------------------------------------------------- */
+.excifinder-clinical-notice {
+  margin-top: 24px;
+  padding: 18px 20px;
+  color: #495765;
+  background: #edf2f6;
+  border-left: 4px solid #8c9aa7;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.excifinder-clinical-notice h2 {
+  margin-bottom: 8px;
+  color: var(--excifinder-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.excifinder-clinical-notice p:last-child {
+  margin-bottom: 0;
+}
+
+/* Responsive rules -------------------------------------------------------- */
+@media (min-width: 768px) {
+  .excifinder-header-inner,
+  .excifinder-main {
+    width: min(100% - 56px, 1180px);
+  }
+
+  .excifinder-header-inner {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    padding: 20px 0;
+  }
+
+  .excifinder-tagline {
+    margin-top: 0;
+  }
+
+  .excifinder-main {
+    padding-top: 36px;
+  }
+
+  .excifinder-search-card {
+    padding: 24px;
+  }
+
+  .excifinder-search-form {
+    display: grid;
+    grid-template-columns: minmax(240px, 360px) minmax(240px, 360px) 150px;
+    align-items: start;
+    justify-content: start;
+    gap: 14px;
+  }
+
+  .excifinder-search-action {
+    margin-top: 27px;
+  }
+
+  .excifinder-utility-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .excifinder-export-action {
+    flex: 0 0 auto;
+  }
+
+  .excifinder-app .excifinder-button-secondary {
+    width: auto;
+    min-width: 160px;
+  }
+}

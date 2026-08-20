@@ -169,8 +169,8 @@ test_that("group layout stays vertical, full-width, and scroll-protected", {
     warn = FALSE,
     encoding = "UTF-8"
   ), collapse = "\n")
-  ui_text <- paste(readLines(
-    file.path(project_root(), "R", "ui", "shiny_ui.R"),
+  css_text <- paste(readLines(
+    file.path(project_root(), "www", "excifinder.css"),
     warn = FALSE,
     encoding = "UTF-8"
   ), collapse = "\n")
@@ -182,9 +182,9 @@ test_that("group layout stays vertical, full-width, and scroll-protected", {
   )
   expect_match(server_text, "width = 12", fixed = TRUE)
   expect_false(grepl("width = 6", server_text, fixed = TRUE))
-  expect_false(grepl("width = 6", ui_text, fixed = TRUE))
+  expect_false(grepl("width = 6", css_text, fixed = TRUE))
   expect_match(server_text, "scrollX = TRUE", fixed = TRUE)
-  expect_match(ui_text, "overflow: hidden", fixed = TRUE)
+  expect_match(css_text, "overflow: hidden", fixed = TRUE)
 })
 
 test_that("ambiguous query renders its explanatory message", {

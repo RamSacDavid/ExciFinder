@@ -63,13 +63,13 @@ test_that("state classes and UI CSS preserve four explicit color identities", {
     )
   )
   ui_html <- paste(as.character(application_env$build_excifinder_ui()), collapse = "")
-  ui_source <- paste(readLines(
-    file.path(project_root(), "R", "ui", "shiny_ui.R"),
+  css_source <- paste(readLines(
+    file.path(project_root(), "www", "excifinder.css"),
     warn = FALSE,
     encoding = "UTF-8"
   ), collapse = "\n")
   expect_true(all(vapply(statuses, function(status) {
-    grepl(application_env$excifinder_state_class(status), ui_source, fixed = TRUE)
+    grepl(application_env$excifinder_state_class(status), css_source, fixed = TRUE)
   }, logical(1))))
   group_headers <- paste(vapply(statuses, function(status) {
     as.character(application_env$excifinder_state_box(status, paste0("test_", status)))
