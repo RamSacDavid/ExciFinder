@@ -15,10 +15,11 @@ test_that("server calls injected service once with canonical inputs and filters"
       list(authorized = TRUE, marketed = TRUE)
     )
     expect_s3_class(latest_result(), "excipient_search_result")
-    expect_silent(output$results_table)
-    expect_identical(
-      application_env$present_search_table(latest_result())$Estado[[1]],
-      "Identificado"
+    expect_identical(selected_product_id(), "AUTH:ui-001")
+    expect_match(
+      paste(as.character(output$result_browser), collapse = ""),
+      "UI Product",
+      fixed = TRUE
     )
   })
 })
@@ -97,7 +98,7 @@ test_that("suggestion failures do not block free-text factual search", {
   })
 })
 
-test_that("server renders every factual result in its separate group", {
+test_that("server renders every non-empty factual group in master-detail order", {
   fake <- new_ui_fake_search_service(make_ui_mixed_result())
 
   shiny::testServer(application_env$build_excifinder_server(fake$service), {
@@ -106,85 +107,105 @@ test_that("server renders every factual result in its separate group", {
     session$setInputs(pa = "ingredient", excipiente = "lactosa", buscar = 1)
     session$flushReact()
 
-    expect_silent(output$results_identified)
-    expect_silent(output$results_not_identified)
-    expect_silent(output$results_indeterminate)
-    expect_silent(output$results_conflicting)
-    groups <- paste(as.character(output$result_groups), collapse = "")
-    expect_match(groups, "IDENTIFICADO", fixed = TRUE)
-    expect_match(groups, "NO IDENTIFICADO EN FUENTES VERIFICADAS", fixed = TRUE)
-    expect_match(groups, "NO VERIFICABLE", fixed = TRUE)
-    expect_match(groups, "FUENTES DISCORDANTES", fixed = TRUE)
-    expect_identical(lengths(regmatches(
-      groups,
-      gregexpr("col-sm-12", groups, fixed = TRUE)
-    )), 4L)
-    expect_false(grepl("col-sm-6", groups, fixed = TRUE))
+    browser <- paste(as.character(output$result_browser), collapse = "")
+    expect_match(browser, "excifinder-master-detail", fixed = TRUE)
+    expect_match(browser, "IDENTIFICADO", fixed = TRUE)
+    expect_match(browser, "NO IDENTIFICADO EN FUENTES VERIFICADAS", fixed = TRUE)
+    expect_match(browser, "NO VERIFICABLE", fixed = TRUE)
+    expect_match(browser, "FUENTES DISCORDANTES", fixed = TRUE)
+    expect_identical(selected_product_id(), "AUTH:ui-001")
+    expect_match(browser, "UI Product 1", fixed = TRUE)
   })
 })
 
-test_that("each factual state renders only its own full-width panel", {
-  titles <- c(
-    identified = "IDENTIFICADO",
-    not_identified = "NO IDENTIFICADO EN FUENTES VERIFICADAS",
-    indeterminate = "NO VERIFICABLE",
-    conflicting = "FUENTES DISCORDANTES"
-  )
+test_that("initial selection uses first product in first non-empty factual group", {
+  result <- make_ui_mixed_result(c(
+    "conflicting", "indeterminate", "identified", "identified"
+  ))
+  fake <- new_ui_fake_search_service(result)
 
-  for (conclusion in names(titles)) {
-    fake <- new_ui_fake_search_service(make_ui_mixed_result(conclusion))
-    shiny::testServer(application_env$build_excifinder_server(fake$service), {
-      session$setInputs(buscar = 0)
-      session$flushReact()
-      session$setInputs(pa = "ingredient", excipiente = "lactosa", buscar = 1)
-      session$flushReact()
+  shiny::testServer(application_env$build_excifinder_server(fake$service), {
+    session$setInputs(buscar = 0)
+    session$flushReact()
+    session$setInputs(pa = "ingredient", excipiente = "lactosa", buscar = 1)
+    session$flushReact()
 
-      groups <- paste(as.character(output$result_groups), collapse = "")
-      expect_match(groups, titles[[conclusion]], fixed = TRUE)
-      expect_match(
-        groups,
-        application_env$excifinder_state_class(conclusion),
-        fixed = TRUE
-      )
-      expect_identical(lengths(regmatches(
-        groups,
-        gregexpr("excifinder-state-group", groups, fixed = TRUE)
-      )), 1L)
-      expect_match(groups, "col-sm-12", fixed = TRUE)
-      expect_false(grepl("col-sm-6", groups, fixed = TRUE))
-      for (other in setdiff(names(titles), conclusion)) {
-        expect_false(grepl(
-          application_env$excifinder_state_class(other),
-          groups,
-          fixed = TRUE
-        ))
-      }
-    })
-  }
+    expect_identical(selected_product_id(), "AUTH:ui-003")
+    expect_match(
+      paste(as.character(output$result_browser), collapse = ""),
+      "UI Product 3",
+      fixed = TRUE
+    )
+  })
 })
 
-test_that("group layout stays vertical, full-width, and scroll-protected", {
-  server_text <- paste(readLines(
-    file.path(project_root(), "R", "ui", "shiny_server.R"),
-    warn = FALSE,
-    encoding = "UTF-8"
-  ), collapse = "\n")
-  css_text <- paste(readLines(
-    file.path(project_root(), "www", "excifinder.css"),
-    warn = FALSE,
-    encoding = "UTF-8"
-  ), collapse = "\n")
-  result <- make_ui_mixed_result(c("identified", "identified"))
+test_that("selection changes detail without repeating factual search", {
+  fake <- new_ui_fake_search_service(make_ui_mixed_result(c(
+    "identified", "identified"
+  )))
 
-  expect_identical(
-    nrow(application_env$present_grouped_search_table(result, "identified")),
-    2L
+  shiny::testServer(application_env$build_excifinder_server(fake$service), {
+    session$setInputs(buscar = 0)
+    session$flushReact()
+    session$setInputs(pa = "ingredient", excipiente = "lactosa", buscar = 1)
+    session$flushReact()
+    expect_identical(selected_product_id(), "AUTH:ui-001")
+
+    session$setInputs(selected_product_id = "AUTH:ui-002")
+    session$flushReact()
+
+    expect_identical(selected_product_id(), "AUTH:ui-002")
+    expect_identical(length(fake$calls$items), 1L)
+    browser <- paste(as.character(output$result_browser), collapse = "")
+    expect_match(browser, "UI Product 2", fixed = TRUE)
+    expect_match(browser, "aria-pressed=\"true\"", fixed = TRUE)
+  })
+})
+
+test_that("a new search resets selection to its first factual product", {
+  first <- make_ui_mixed_result(c("identified", "identified"))
+  second <- make_ui_search_result(
+    registration_number = "new-001",
+    product_name = "New Search Product"
   )
-  expect_match(server_text, "width = 12", fixed = TRUE)
-  expect_false(grepl("width = 6", server_text, fixed = TRUE))
-  expect_false(grepl("width = 6", css_text, fixed = TRUE))
-  expect_match(server_text, "scrollX = TRUE", fixed = TRUE)
-  expect_match(css_text, "overflow: hidden", fixed = TRUE)
+  fake <- new_ui_sequential_fake_search_service(list(first, second))
+
+  shiny::testServer(application_env$build_excifinder_server(fake$service), {
+    session$setInputs(buscar = 0)
+    session$flushReact()
+    session$setInputs(pa = "first", excipiente = "lactosa", buscar = 1)
+    session$flushReact()
+    session$setInputs(selected_product_id = "AUTH:ui-002")
+    session$flushReact()
+    expect_identical(selected_product_id(), "AUTH:ui-002")
+
+    session$setInputs(pa = "second", buscar = 2)
+    session$flushReact()
+
+    expect_identical(selected_product_id(), "AUTH:new-001")
+    expect_identical(length(fake$calls$items), 2L)
+    expect_match(
+      paste(as.character(output$result_browser), collapse = ""),
+      "New Search Product",
+      fixed = TRUE
+    )
+  })
+})
+
+test_that("single medication result selects and renders normally", {
+  fake <- new_ui_fake_search_service(make_ui_search_result())
+
+  shiny::testServer(application_env$build_excifinder_server(fake$service), {
+    session$setInputs(buscar = 0)
+    session$flushReact()
+    session$setInputs(pa = "ingredient", excipiente = "lactosa", buscar = 1)
+    session$flushReact()
+
+    expect_identical(selected_product_id(), "AUTH:ui-001")
+    browser <- paste(as.character(output$result_browser), collapse = "")
+    expect_match(browser, "1 medicamento evaluado", fixed = TRUE)
+    expect_match(browser, "UI Product", fixed = TRUE)
+  })
 })
 
 test_that("ambiguous query renders its explanatory message", {
@@ -201,7 +222,10 @@ test_that("ambiguous query renders its explanatory message", {
       paste(as.character(output$search_message), collapse = ""),
       "más de un concepto"
     )
-    expect_error(output$results_table, class = "shiny.silent.error")
+    expect_identical(
+      paste(as.character(output$result_browser), collapse = ""),
+      ""
+    )
   })
 })
 
@@ -218,7 +242,30 @@ test_that("zero medicines renders a dedicated non-factual message", {
       paste(as.character(output$search_message), collapse = ""),
       "No se encontraron medicamentos autorizados"
     )
-    expect_error(output$results_table, class = "shiny.silent.error")
+    expect_identical(
+      paste(as.character(output$result_browser), collapse = ""),
+      ""
+    )
+  })
+})
+
+test_that("invalid resolved query does not render a clinical browser", {
+  fake <- new_ui_fake_search_service(make_ui_invalid_result())
+
+  shiny::testServer(application_env$build_excifinder_server(fake$service), {
+    session$setInputs(buscar = 0)
+    session$flushReact()
+    session$setInputs(pa = "ingredient", excipiente = "invalid", buscar = 1)
+    session$flushReact()
+
+    expect_match(
+      paste(as.character(output$search_message), collapse = ""),
+      "no es válida"
+    )
+    expect_identical(
+      paste(as.character(output$result_browser), collapse = ""),
+      ""
+    )
   })
 })
 
@@ -243,10 +290,10 @@ test_that("partial errors render warning while retaining results", {
       paste(as.character(output$partial_errors), collapse = ""),
       "Controlled source failure"
     )
-    expect_silent(output$results_table)
-    expect_identical(
-      application_env$present_search_table(latest_result())$Estado[[1]],
-      "Identificado"
+    expect_match(
+      paste(as.character(output$result_browser), collapse = ""),
+      "excifinder-master-detail",
+      fixed = TRUE
     )
   })
 })

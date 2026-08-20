@@ -20,27 +20,221 @@ excifinder_predictive_input <- function(input_id, label, query_input_id) {
   control
 }
 
-excifinder_state_box <- function(conclusion, output_id) {
-  titles <- c(
-    identified = "IDENTIFICADO",
-    not_identified = "NO IDENTIFICADO EN FUENTES VERIFICADAS",
-    indeterminate = "NO VERIFICABLE",
-    conflicting = "FUENTES DISCORDANTES"
-  )
+excifinder_clinical_field <- function(label, value) {
   shiny::div(
+    class = "excifinder-clinical-field",
+    shiny::tags$dt(label),
+    shiny::tags$dd(value)
+  )
+}
+
+excifinder_master_item <- function(item, selected_product_id) {
+  selected <- identical(item$id, selected_product_id)
+  shiny::tags$button(
+    type = "button",
     class = paste(
-      "excifinder-state-group",
-      excifinder_state_class(conclusion)
+      "excifinder-master-item",
+      if (selected) "is-selected" else NULL
+    ),
+    `data-product-id` = item$id,
+    `aria-pressed` = if (selected) "true" else "false",
+    `aria-current` = if (selected) "true" else NULL,
+    onclick = paste0(
+      "Shiny.setInputValue('selected_product_id', ",
+      "this.dataset.productId, {priority: 'event'});"
+    ),
+    shiny::span(class = "excifinder-master-name", item$name),
+    shiny::span(
+      class = "excifinder-master-meta",
+      paste(item$dose, "· N.º registro", item$registration_number)
+    ),
+    if (selected) shiny::span(
+      class = "excifinder-selected-indicator",
+      "Seleccionado"
+    )
+  )
+}
+
+excifinder_master_group <- function(group, selected_product_id) {
+  shiny::tags$section(
+    class = paste("excifinder-master-group", group$state_class),
+    shiny::div(
+      class = "excifinder-state-header",
+      shiny::tags$h3(group$label),
+      shiny::span(
+        class = "excifinder-state-count",
+        group$count,
+        `aria-label` = paste(group$count, "medicamentos")
+      )
     ),
     shiny::div(
-      class = "excifinder-state-card",
+      class = "excifinder-master-items",
+      lapply(group$items, excifinder_master_item, selected_product_id)
+    )
+  )
+}
+
+excifinder_verification_attempt <- function(attempt) {
+  shiny::div(
+    class = "excifinder-verification-attempt",
+    shiny::div(class = "excifinder-verification-source", attempt$source),
+    shiny::div(class = "excifinder-verification-outcome", attempt$outcome),
+    shiny::div(
+      class = "excifinder-verification-extraction",
+      attempt$extraction_status
+    )
+  )
+}
+
+excifinder_evidence_item <- function(evidence) {
+  shiny::tags$article(
+    class = "excifinder-evidence-item",
+    shiny::tags$h4(evidence$source),
+    shiny::p(
+      class = "excifinder-matched-term",
+      shiny::span("Término coincidente: "),
+      evidence$matched_term
+    ),
+    shiny::tags$blockquote(evidence$excerpt)
+  )
+}
+
+excifinder_evidence_block <- function(detail) {
+  if (length(detail$evidence) == 0L) {
+    return(shiny::p(
+      class = "excifinder-no-evidence",
+      detail$no_evidence_message
+    ))
+  }
+  first <- excifinder_evidence_item(detail$evidence[[1L]])
+  if (length(detail$evidence) == 1L) return(first)
+  additional_count <- length(detail$evidence) - 1L
+  shiny::tagList(
+    first,
+    shiny::tags$details(
+      class = "excifinder-additional-evidence",
+      shiny::tags$summary(paste(
+        "Ver",
+        additional_count,
+        if (additional_count == 1L) "evidencia adicional" else "evidencias adicionales"
+      )),
+      lapply(detail$evidence[-1L], excifinder_evidence_item)
+    )
+  )
+}
+
+excifinder_clinical_detail <- function(detail) {
+  shiny::tags$article(
+    class = paste("excifinder-clinical-detail", detail$state_class),
+    shiny::tags$header(
+      class = "excifinder-detail-header",
       shiny::div(
-        class = "excifinder-state-header",
-        unname(titles[[conclusion]])
+        class = "excifinder-detail-heading",
+        shiny::tags$h2(detail$name),
+        shiny::p(
+          class = "excifinder-active-ingredient",
+          paste("Principio activo consultado:", detail$active_ingredient)
+        )
+      ),
+      shiny::span(
+        class = "excifinder-status-badge",
+        detail$status_label
       ),
       shiny::div(
-        class = "excifinder-state-body",
-        DT::DTOutput(output_id)
+        class = "excifinder-registration",
+        shiny::span("N.º registro"),
+        shiny::strong(detail$registration_number)
+      )
+    ),
+    shiny::tags$dl(
+      class = "excifinder-clinical-fields",
+      excifinder_clinical_field("Dosis", detail$fields$dose),
+      excifinder_clinical_field(
+        "Forma farmacéutica",
+        detail$fields$pharmaceutical_form
+      ),
+      excifinder_clinical_field(
+        "Vía de administración",
+        detail$fields$administration_route
+      ),
+      excifinder_clinical_field(
+        "Excipiente consultado",
+        detail$fields$excipient
+      ),
+      excifinder_clinical_field(
+        "Cobertura de verificación",
+        detail$fields$coverage
+      ),
+      excifinder_clinical_field(
+        "Fuentes verificadas",
+        detail$fields$sources
+      )
+    ),
+    shiny::tags$section(
+      class = "excifinder-detail-section excifinder-verification-section",
+      shiny::tags$h3("VERIFICACIÓN POR FUENTE"),
+      if (length(detail$attempts) == 0L) {
+        shiny::p("No se registraron intentos de verificación.")
+      } else {
+        lapply(detail$attempts, excifinder_verification_attempt)
+      }
+    ),
+    shiny::tags$section(
+      class = "excifinder-detail-section excifinder-evidence-section",
+      shiny::tags$h3("EVIDENCIA"),
+      excifinder_evidence_block(detail)
+    ),
+    if (length(detail$smpc_links) > 0L) shiny::div(
+      class = "excifinder-smpc-links",
+      lapply(detail$smpc_links, function(link) {
+        shiny::tags$a(
+          href = link$url,
+          target = "_blank",
+          rel = "noopener noreferrer",
+          link$label
+        )
+      })
+    )
+  )
+}
+
+excifinder_result_browser <- function(browser) {
+  count_label <- if (browser$context$product_count == 1L) {
+    "1 medicamento evaluado"
+  } else {
+    paste(browser$context$product_count, "medicamentos evaluados")
+  }
+  shiny::tags$section(
+    class = "excifinder-result-browser",
+    `aria-labelledby` = "excifinder-results-title",
+    shiny::tags$header(
+      class = "excifinder-results-header",
+      shiny::tags$h2(id = "excifinder-results-title", "Resultados"),
+      shiny::p(
+        class = "excifinder-results-query",
+        paste(
+          browser$context$active_ingredient,
+          browser$context$excipient,
+          sep = " · "
+        )
+      ),
+      shiny::p(class = "excifinder-results-count", count_label),
+      shiny::p(class = "excifinder-results-method", browser$context$method)
+    ),
+    shiny::div(
+      class = "excifinder-master-detail",
+      shiny::tags$nav(
+        class = "excifinder-master",
+        `aria-label` = "Lista de medicamentos",
+        lapply(
+          browser$groups,
+          excifinder_master_group,
+          browser$selected_product_id
+        )
+      ),
+      shiny::div(
+        class = "excifinder-detail-column",
+        excifinder_clinical_detail(browser$detail)
       )
     )
   )
@@ -136,14 +330,13 @@ build_excifinder_ui <- function() {
       ),
       shiny::div(
         class = "excifinder-feedback",
-        shiny::uiOutput("search_method"),
         shiny::uiOutput("search_message"),
         shiny::uiOutput("partial_warning"),
         shiny::uiOutput("partial_errors")
       ),
       shiny::div(
         class = "excifinder-results",
-        shiny::uiOutput("result_groups")
+        shiny::uiOutput("result_browser")
       ),
       shiny::tags$aside(
         class = "excifinder-clinical-notice",

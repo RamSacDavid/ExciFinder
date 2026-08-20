@@ -55,3 +55,42 @@ test_that("external CSS keeps layout protection and semantic state colours", {
     expect_match(css, state_class, fixed = TRUE)
   }
 })
+
+test_that("UI exposes an accessible master-detail browser without visible DT", {
+  ui_source <- paste(readLines(
+    file.path(project_root(), "R", "ui", "shiny_ui.R"),
+    warn = FALSE,
+    encoding = "UTF-8"
+  ), collapse = "\n")
+  server_source <- paste(readLines(
+    file.path(project_root(), "R", "ui", "shiny_server.R"),
+    warn = FALSE,
+    encoding = "UTF-8"
+  ), collapse = "\n")
+
+  expect_match(ui_source, "excifinder-master-detail", fixed = TRUE)
+  expect_match(ui_source, "excifinder-clinical-detail", fixed = TRUE)
+  expect_match(ui_source, 'tags$button', fixed = TRUE)
+  expect_match(ui_source, 'aria-pressed', fixed = TRUE)
+  expect_match(ui_source, "selected_product_id", fixed = TRUE)
+  expect_false(grepl("DTOutput", ui_source, fixed = TRUE))
+  expect_false(grepl("renderDT", server_source, fixed = TRUE))
+  expect_false(grepl("DT::datatable", server_source, fixed = TRUE))
+  expect_false(grepl("scrollX", server_source, fixed = TRUE))
+})
+
+test_that("master-detail CSS is responsive, sticky only on desktop, and keyboard visible", {
+  css <- paste(readLines(
+    file.path(project_root(), "www", "excifinder.css"),
+    warn = FALSE,
+    encoding = "UTF-8"
+  ), collapse = "\n")
+
+  expect_match(css, ".excifinder-master-detail", fixed = TRUE)
+  expect_match(css, "grid-template-columns: minmax(0, 1fr)", fixed = TRUE)
+  expect_match(css, "grid-template-columns: minmax(0, 34fr) minmax(0, 66fr)", fixed = TRUE)
+  expect_match(css, "position: sticky", fixed = TRUE)
+  expect_match(css, "top: 16px", fixed = TRUE)
+  expect_match(css, ":focus-visible", fixed = TRUE)
+  expect_match(css, "overflow-wrap: anywhere", fixed = TRUE)
+})

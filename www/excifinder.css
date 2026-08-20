@@ -263,23 +263,164 @@ body,
 }
 
 /* Result containers ------------------------------------------------------- */
-.excifinder-results .row {
-  margin-right: 0;
-  margin-left: 0;
-}
-
-.excifinder-results .row > [class*="col-"] {
-  padding-right: 0;
-  padding-left: 0;
-}
-
-.excifinder-state-group {
+.excifinder-result-browser {
   width: 100%;
-  margin-bottom: 18px;
   overflow: hidden;
 }
 
-.excifinder-state-card {
+.excifinder-results-header {
+  margin-bottom: 18px;
+  padding: 20px;
+  background: var(--excifinder-surface);
+  border: 1px solid var(--excifinder-border);
+  border-radius: 10px;
+  box-shadow: var(--excifinder-shadow);
+}
+
+.excifinder-results-header h2 {
+  margin-bottom: 10px;
+  font-size: 24px;
+}
+
+.excifinder-results-query {
+  margin-bottom: 4px;
+  color: var(--excifinder-text);
+  font-size: 16px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.excifinder-results-count,
+.excifinder-results-method {
+  margin-bottom: 3px;
+  color: var(--excifinder-muted);
+  font-size: 13px;
+}
+
+.excifinder-results-method {
+  margin-bottom: 0;
+}
+
+.excifinder-master-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  width: 100%;
+}
+
+.excifinder-master,
+.excifinder-detail-column {
+  min-width: 0;
+}
+
+.excifinder-master-group {
+  margin-bottom: 14px;
+  overflow: hidden;
+  border: 1px solid var(--excifinder-border);
+  border-radius: 10px;
+}
+
+.excifinder-state-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  color: #ffffff;
+}
+
+.excifinder-state-header h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.025em;
+  line-height: 1.35;
+}
+
+.excifinder-state-count {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 2px 7px;
+  color: var(--excifinder-text);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.excifinder-master-items {
+  padding: 8px;
+}
+
+.excifinder-master-item {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 12px 13px;
+  color: var(--excifinder-text);
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.excifinder-master-item + .excifinder-master-item {
+  margin-top: 6px;
+}
+
+.excifinder-master-item:hover {
+  background: #ffffff;
+  border-color: #b9c8d8;
+}
+
+.excifinder-master-item:focus-visible {
+  outline: 3px solid rgba(0, 78, 179, 0.4);
+  outline-offset: 2px;
+}
+
+.excifinder-master-item.is-selected {
+  padding-left: 17px;
+  background: #eef5ff;
+  border-color: var(--excifinder-blue);
+  box-shadow: inset 4px 0 0 var(--excifinder-blue);
+}
+
+.excifinder-master-name,
+.excifinder-master-meta,
+.excifinder-selected-indicator {
+  display: block;
+}
+
+.excifinder-master-name {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.excifinder-master-meta {
+  margin-top: 5px;
+  color: var(--excifinder-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.excifinder-selected-indicator {
+  margin-top: 7px;
+  color: var(--excifinder-blue);
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.excifinder-clinical-detail {
   width: 100%;
   overflow: hidden;
   background: var(--excifinder-surface);
@@ -288,65 +429,226 @@ body,
   box-shadow: var(--excifinder-shadow);
 }
 
-.excifinder-state-header {
-  padding: 12px 16px;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 750;
-  letter-spacing: 0.02em;
+.excifinder-detail-header {
+  display: grid;
+  gap: 13px;
+  padding: 20px;
+  border-bottom: 1px solid var(--excifinder-border);
 }
 
-.excifinder-state-body {
-  width: 100%;
-  overflow: hidden;
+.excifinder-detail-heading h2 {
+  margin-bottom: 5px;
+  font-size: 20px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
-.excifinder-state-group .dataTables_wrapper {
-  width: 100%;
-  padding: 12px;
-  overflow: hidden;
-  background: transparent;
+.excifinder-active-ingredient {
+  margin-bottom: 0;
+  color: var(--excifinder-muted);
   font-size: 12px;
 }
 
-.excifinder-state-group .dataTables_scroll {
-  max-width: 100%;
+.excifinder-status-badge {
+  justify-self: start;
+  padding: 5px 9px;
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.3;
+  text-transform: uppercase;
 }
 
-.excifinder-state-group table.dataTable {
-  width: 100% !important;
+.excifinder-registration span,
+.excifinder-registration strong {
+  display: block;
+}
+
+.excifinder-registration span {
+  margin-bottom: 2px;
+  color: var(--excifinder-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.excifinder-registration strong {
+  font-size: 14px;
+}
+
+.excifinder-clinical-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  margin: 0;
+  padding: 6px 20px;
+}
+
+.excifinder-clinical-field {
+  min-width: 0;
+  padding: 14px 0;
+  border-bottom: 1px solid #e8edf2;
+}
+
+.excifinder-clinical-field dt {
+  margin-bottom: 4px;
+  color: var(--excifinder-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.excifinder-clinical-field dd {
+  margin: 0;
+  color: var(--excifinder-text);
+  font-size: 14px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.excifinder-detail-section {
+  padding: 19px 20px;
+  border-top: 1px solid var(--excifinder-border);
+}
+
+.excifinder-detail-section h3 {
+  margin-bottom: 13px;
+  color: var(--excifinder-text);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.045em;
+}
+
+.excifinder-verification-attempt {
+  display: grid;
+  gap: 2px;
+  padding: 9px 11px;
+  background: #f7f9fb;
+  border: 1px solid #e2e8ee;
+  border-radius: 7px;
+}
+
+.excifinder-verification-attempt + .excifinder-verification-attempt {
+  margin-top: 6px;
+}
+
+.excifinder-verification-source {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.excifinder-verification-outcome {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.excifinder-verification-extraction {
+  color: var(--excifinder-muted);
+  font-size: 11px;
+}
+
+.excifinder-evidence-item h4 {
+  margin: 0 0 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.excifinder-matched-term {
+  margin-bottom: 9px;
+  font-size: 12px;
+}
+
+.excifinder-matched-term span {
+  color: var(--excifinder-muted);
+}
+
+.excifinder-evidence-item blockquote {
+  margin: 0;
+  padding: 12px 14px;
+  color: #374553;
+  background: #f7f9fb;
+  border-left: 3px solid #9eabb7;
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.excifinder-additional-evidence {
+  margin-top: 13px;
+}
+
+.excifinder-additional-evidence summary {
+  color: var(--excifinder-blue);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.excifinder-additional-evidence .excifinder-evidence-item {
+  margin-top: 15px;
+}
+
+.excifinder-no-evidence {
+  margin-bottom: 0;
+  color: var(--excifinder-muted);
+  font-size: 13px;
+}
+
+.excifinder-smpc-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 17px 20px 20px;
+  border-top: 1px solid var(--excifinder-border);
+}
+
+.excifinder-smpc-links a {
+  color: var(--excifinder-blue);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.excifinder-smpc-links a:focus-visible {
+  outline: 3px solid rgba(0, 78, 179, 0.35);
+  outline-offset: 3px;
 }
 
 /* State colours ----------------------------------------------------------- */
-.state-identified .excifinder-state-card {
+.state-identified.excifinder-master-group {
   background: #fbe9e9;
 }
 
-.state-identified .excifinder-state-header {
+.state-identified .excifinder-state-header,
+.state-identified .excifinder-status-badge {
   background: #a82d35;
 }
 
-.state-not-identified .excifinder-state-card {
+.state-not-identified.excifinder-master-group {
   background: #e8f5ec;
 }
 
-.state-not-identified .excifinder-state-header {
+.state-not-identified .excifinder-state-header,
+.state-not-identified .excifinder-status-badge {
   background: #287a45;
 }
 
-.state-indeterminate .excifinder-state-card {
+.state-indeterminate.excifinder-master-group {
   background: #eeeeee;
 }
 
-.state-indeterminate .excifinder-state-header {
+.state-indeterminate .excifinder-state-header,
+.state-indeterminate .excifinder-status-badge {
   background: #5f6870;
 }
 
-.state-conflicting .excifinder-state-card {
+.state-conflicting.excifinder-master-group {
   background: #fff0df;
 }
 
-.state-conflicting .excifinder-state-header {
+.state-conflicting .excifinder-state-header,
+.state-conflicting .excifinder-status-badge {
   background: #b85f00;
 }
 
@@ -424,5 +726,35 @@ body,
   .excifinder-app .excifinder-button-secondary {
     width: auto;
     min-width: 160px;
+  }
+
+  .excifinder-master-detail {
+    grid-template-columns: minmax(0, 34fr) minmax(0, 66fr);
+    align-items: start;
+    gap: 20px;
+  }
+
+  .excifinder-detail-column {
+    position: sticky;
+    top: 16px;
+    align-self: start;
+  }
+
+  .excifinder-detail-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .excifinder-detail-heading {
+    grid-column: 1 / -1;
+  }
+
+  .excifinder-registration {
+    text-align: right;
+  }
+
+  .excifinder-clinical-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
   }
 }

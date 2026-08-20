@@ -68,6 +68,7 @@ build_excifinder_server <- function(
       stop("Session services must expose a valid search service.", call. = FALSE)
     }
     latest_result <- shiny::reactiveVal(NULL)
+    selected_product_id <- shiny::reactiveVal(NULL)
 
     pa_query <- shiny::debounce(shiny::reactive({
       if (is.null(input$pa_query)) "" else input$pa_query
@@ -146,16 +147,14 @@ build_excifinder_server <- function(
       )
       if (!is.null(result)) {
         latest_result(result)
+        browser <- present_search_browser(result)
+        selected_product_id(if (is.null(browser)) {
+          NULL
+        } else {
+          browser$selected_product_id
+        })
       }
     }, ignoreInit = TRUE)
-
-    output$search_method <- shiny::renderUI({
-      result <- latest_result()
-      shiny::req(result)
-      message <- present_search_messages(result)$method
-      if (is.null(message)) return(NULL)
-      shiny::div(class = "excifinder-message", message)
-    })
 
     output$search_message <- shiny::renderUI({
       result <- latest_result()
@@ -190,59 +189,23 @@ build_excifinder_server <- function(
       )
     })
 
-    output$results_table <- DT::renderDT({
+    shiny::observeEvent(input$selected_product_id, {
       result <- latest_result()
       shiny::req(result)
-      table <- present_search_table(result)
-      shiny::req(nrow(table) > 0L)
-      DT::datatable(
-        table,
-        rownames = FALSE,
-        escape = excifinder_dt_escape_columns(table),
-        options = list(pageLength = 15L, autoWidth = TRUE, scrollX = TRUE)
-      )
-    })
+      browser <- present_search_browser(result, input$selected_product_id)
+      if (!is.null(browser) && identical(
+          browser$selected_product_id,
+          input$selected_product_id)) {
+        selected_product_id(input$selected_product_id)
+      }
+    }, ignoreInit = TRUE)
 
-    render_result_group <- function(conclusion) {
-      DT::renderDT({
-        result <- latest_result()
-        shiny::req(result)
-        table <- present_grouped_search_table(result, conclusion)
-        shiny::req(nrow(table) > 0L)
-        DT::datatable(
-          table,
-          rownames = FALSE,
-          escape = excifinder_dt_escape_columns(table),
-          options = list(pageLength = 15L, autoWidth = TRUE, scrollX = TRUE)
-        )
-      })
-    }
-    output$results_identified <- render_result_group("identified")
-    output$results_not_identified <- render_result_group("not_identified")
-    output$results_indeterminate <- render_result_group("indeterminate")
-    output$results_conflicting <- render_result_group("conflicting")
-
-    output$result_groups <- shiny::renderUI({
+    output$result_browser <- shiny::renderUI({
       result <- latest_result()
       shiny::req(result)
-      groups <- split_search_results_by_conclusion(result)
-      conclusions <- c(
-        "identified", "not_identified", "indeterminate", "conflicting"
-      )
-      visible <- conclusions[vapply(
-        groups[conclusions], length, integer(1)
-      ) > 0L]
-      if (length(visible) == 0L) return(NULL)
-      rows <- lapply(visible, function(conclusion) {
-        shiny::fluidRow(shiny::column(
-          width = 12,
-          excifinder_state_box(
-            conclusion,
-            paste0("results_", conclusion)
-          )
-        ))
-      })
-      do.call(shiny::tagList, rows)
+      browser <- present_search_browser(result, selected_product_id())
+      if (is.null(browser)) return(NULL)
+      excifinder_result_browser(browser)
     })
 
     download_data <- shiny::reactive({

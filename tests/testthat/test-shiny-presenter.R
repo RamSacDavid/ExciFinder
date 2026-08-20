@@ -71,9 +71,9 @@ test_that("state classes and UI CSS preserve four explicit color identities", {
   expect_true(all(vapply(statuses, function(status) {
     grepl(application_env$excifinder_state_class(status), css_source, fixed = TRUE)
   }, logical(1))))
-  group_headers <- paste(vapply(statuses, function(status) {
-    as.character(application_env$excifinder_state_box(status, paste0("test_", status)))
-  }, character(1)), collapse = "")
+  group_headers <- as.character(application_env$excifinder_result_browser(
+    application_env$present_search_browser(make_ui_mixed_result())
+  ))
   expect_match(group_headers, "IDENTIFICADO", fixed = TRUE)
   expect_match(group_headers, "NO IDENTIFICADO EN FUENTES VERIFICADAS", fixed = TRUE)
   expect_match(group_headers, "NO VERIFICABLE", fixed = TRUE)
@@ -85,6 +85,196 @@ test_that("state classes and UI CSS preserve four explicit color identities", {
     "No identificado en fuentes verificadas” no debe interpretarse como garantía absoluta",
     fixed = TRUE
   )
+})
+
+test_that("clinical presenter maps the complete identified medication card", {
+  result <- make_ui_search_result(
+    conclusion = "identified",
+    coverage = "partial",
+    routes = c("Oral", "Sublingual"),
+    active_ingredient_query = "FINERENONA",
+    excipient_query = "LACTOSA MONOHIDRATO",
+    evidence_excerpts = c("First <literal> excerpt", "Second literal excerpt"),
+    smpc_urls = c(
+      "https://example.test/one.pdf?x=1&y=2",
+      "https://example.test/two.pdf"
+    ),
+    include_structured = TRUE
+  )
+  browser <- application_env$present_search_browser(result)
+  detail <- browser$detail
+  html <- as.character(application_env$excifinder_result_browser(browser))
+
+  expect_identical(browser$context$active_ingredient, "FINERENONA")
+  expect_identical(browser$context$excipient, "LACTOSA MONOHIDRATO")
+  expect_identical(browser$context$product_count, 1L)
+  expect_identical(browser$context$method, "Coincidencia literal normalizada")
+  expect_identical(detail$conclusion, "identified")
+  expect_identical(detail$status_label, "Identificado")
+  expect_identical(detail$fields$dose, "500 mg")
+  expect_identical(detail$fields$pharmaceutical_form, "Comprimido")
+  expect_identical(detail$fields$administration_route, "Oral · Sublingual")
+  expect_identical(detail$fields$excipient, "LACTOSA MONOHIDRATO")
+  expect_identical(detail$fields$coverage, "Parcial")
+  expect_match(detail$fields$sources, "CIMA estructurado", fixed = TRUE)
+  expect_match(detail$fields$sources, "Ficha técnica (sección 6.1)", fixed = TRUE)
+  expect_identical(vapply(detail$evidence, `[[`, character(1), "excerpt"), c(
+    "First <literal> excerpt", "Second literal excerpt"
+  ))
+  expect_true(all(vapply(
+    detail$evidence,
+    function(item) identical(item$matched_term, "lactosa"),
+    logical(1)
+  )))
+  expect_match(html, ">Dosis<", fixed = TRUE)
+  expect_false(grepl("Dosis / strength", html, fixed = TRUE))
+  expect_identical(lengths(regmatches(
+    html,
+    gregexpr('class="excifinder-clinical-field"', html, fixed = TRUE)
+  )), 6L)
+  for (label in c(
+      "Dosis", "Forma farmacéutica", "Vía de administración",
+      "Excipiente consultado", "Cobertura de verificación",
+      "Fuentes verificadas"
+  )) {
+    expect_match(html, paste0(">", label, "<"), fixed = TRUE)
+  }
+  expect_match(html, "VERIFICACIÓN POR FUENTE", fixed = TRUE)
+  expect_match(html, "Evidencia encontrada", fixed = TRUE)
+  expect_match(html, "Sin evidencia", fixed = TRUE)
+  expect_match(html, "Verificación completa", fixed = TRUE)
+  expect_match(html, "Ficha técnica (sección 6.1)", fixed = TRUE)
+  expect_match(html, "Ver 1 evidencia adicional", fixed = TRUE)
+  expect_match(html, "First &lt;literal&gt; excerpt", fixed = TRUE)
+  expect_false(grepl("First <literal> excerpt", html, fixed = TRUE))
+})
+
+test_that("clinical presenter aggregates unique formulation values safely", {
+  result <- make_ui_search_result(routes = c("Oral", "Oral"))
+  product_result <- result$results[[1]]
+  second <- domain_env$new_formulation(
+    id = paste0(product_result$assessment$subject_id, ":formulation:2"),
+    medicinal_product_id = product_result$assessment$subject_id,
+    pharmaceutical_form = "Cápsula",
+    routes = c("Oral", "Bucal"),
+    strength = "250 mg"
+  )
+  result$results[[1]]$formulations <- c(product_result$formulations, list(second))
+  detail <- application_env$present_search_browser(result)$detail
+
+  expect_identical(detail$fields$dose, "500 mg · 250 mg")
+  expect_identical(
+    detail$fields$pharmaceutical_form,
+    "Comprimido · Cápsula"
+  )
+  expect_identical(detail$fields$administration_route, "Oral · Bucal")
+})
+
+test_that("clinical cards preserve neutral messages for non-positive states", {
+  not_identified <- application_env$present_search_browser(
+    make_ui_search_result(
+      conclusion = "not_identified",
+      evidence_excerpts = character()
+    )
+  )$detail
+  indeterminate <- application_env$present_search_browser(
+    make_ui_search_result(
+      conclusion = "indeterminate",
+      coverage = "failed",
+      evidence_excerpts = character()
+    )
+  )$detail
+
+  expect_identical(
+    not_identified$no_evidence_message,
+    "Sin coincidencias en fuentes verificadas."
+  )
+  expect_false(grepl(
+    "No contiene|Ausencia confirmada|Libre de",
+    not_identified$no_evidence_message,
+    ignore.case = TRUE
+  ))
+  expect_identical(
+    indeterminate$no_evidence_message,
+    "No se dispone de evidencia concluyente."
+  )
+  expect_identical(indeterminate$fields$coverage, "Fallida")
+})
+
+test_that("conflicting card exposes discordant attempts and positive evidence", {
+  detail <- application_env$present_search_browser(make_ui_search_result(
+    conclusion = "conflicting",
+    include_structured = TRUE,
+    evidence_excerpts = c("Conflict evidence one", "Conflict evidence two")
+  ))$detail
+
+  expect_identical(detail$status_label, "Fuentes discordantes")
+  expect_identical(
+    vapply(detail$attempts, `[[`, character(1), "outcome"),
+    c("Sin evidencia", "Evidencia encontrada")
+  )
+  expect_identical(
+    vapply(detail$evidence, `[[`, character(1), "excerpt"),
+    c("Conflict evidence one", "Conflict evidence two")
+  )
+})
+
+test_that("clinical labels cover all outcomes and extraction statuses", {
+  expect_identical(unname(vapply(
+    c("evidence_found", "no_evidence", "inconclusive", "not_attempted"),
+    application_env$excifinder_attempt_outcome_label,
+    character(1)
+  )), c(
+    "Evidencia encontrada", "Sin evidencia", "No concluyente", "No verificado"
+  ))
+  expect_identical(unname(vapply(
+    c("complete", "partial", "failed", "not_attempted"),
+    application_env$excifinder_extraction_status_label,
+    character(1)
+  )), c(
+    "Verificación completa", "Verificación parcial",
+    "Verificación fallida", "No realizada"
+  ))
+})
+
+test_that("clinical SmPC links are multiple, controlled, and safe", {
+  browser <- application_env$present_search_browser(make_ui_search_result(
+    smpc_urls = c(
+      "https://example.test/one.pdf?x=1&y=2",
+      "https://example.test/two.pdf"
+    )
+  ))
+  links <- browser$detail$smpc_links
+  html <- as.character(application_env$excifinder_result_browser(browser))
+
+  expect_identical(length(links), 2L)
+  expect_identical(vapply(links, `[[`, character(1), "label"), c(
+    "Abrir ficha técnica 1", "Abrir ficha técnica 2"
+  ))
+  expect_match(html, "target=\"_blank\"", fixed = TRUE)
+  expect_match(html, "rel=\"noopener noreferrer\"", fixed = TRUE)
+  expect_match(html, "x=1&amp;y=2", fixed = TRUE)
+  expect_false(grepl(">https://", html, fixed = TRUE))
+})
+
+test_that("master groups preserve factual order, counts, and stable products", {
+  browser <- application_env$present_search_browser(make_ui_mixed_result(c(
+    "conflicting", "identified", "identified", "indeterminate"
+  )))
+
+  expect_identical(
+    vapply(browser$groups, `[[`, character(1), "conclusion"),
+    c("identified", "indeterminate", "conflicting")
+  )
+  expect_identical(vapply(browser$groups, `[[`, integer(1), "count"), c(2L, 1L, 1L))
+  expect_identical(browser$selected_product_id, "AUTH:ui-002")
+  expect_identical(browser$detail$name, "UI Product 2")
+})
+
+test_that("clinical browser is absent for unresolved or empty searches", {
+  expect_null(application_env$present_search_browser(make_ui_ambiguous_result()))
+  expect_null(application_env$present_search_browser(make_ui_invalid_result()))
+  expect_null(application_env$present_search_browser(make_ui_empty_result()))
 })
 
 test_that("result table keeps state, coverage, evidence, sources, and one row per product", {

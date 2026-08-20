@@ -2,22 +2,27 @@ make_ui_search_result <- function(
     conclusion = "identified",
     coverage = "complete",
     strategy = "literal",
+    registration_number = "ui-001",
     product_name = "UI Product",
     pharmaceutical_form = "Comprimido",
     strength = "500 mg",
+    routes = "Oral",
+    active_ingredient_query = "ingredient",
+    excipient_query = "lactosa",
     evidence_excerpts = "Original lactose excerpt",
     smpc_urls = "https://example.test/document.pdf",
     include_structured = FALSE,
     errors = list()) {
-  product <- make_search_product("ui-001", product_name)
+  product <- make_search_product(registration_number, product_name)
   product_id <- domain_env$medicinal_product_id(product)
   formulation <- domain_env$new_formulation(
     id = paste0(product_id, ":formulation:1"),
     medicinal_product_id = product_id,
     pharmaceutical_form = pharmaceutical_form,
+    routes = routes,
     strength = strength
   )
-  excipient <- domain_env$new_excipient("ui-excipient", "lactosa")
+  excipient <- domain_env$new_excipient("ui-excipient", excipient_query)
   artifacts <- list()
   attempts <- list()
 
@@ -103,13 +108,16 @@ make_ui_search_result <- function(
     source_artifacts = artifacts
   )
   resolution <- application_env$new_excipient_resolution(
-    query = "lactosa",
+    query = excipient_query,
     status = "resolved",
     strategy = strategy,
     candidates = list(excipient)
   )
   application_env$new_excipient_search_result(
-    query = list(active_ingredient = "ingredient", excipient = "lactosa"),
+    query = list(
+      active_ingredient = active_ingredient_query,
+      excipient = excipient_query
+    ),
     resolution = resolution,
     results = list(product_result),
     errors = errors
@@ -184,11 +192,29 @@ new_ui_fake_search_service <- function(result) {
   list(service = service, calls = calls)
 }
 
+new_ui_sequential_fake_search_service <- function(results) {
+  calls <- new.env(parent = emptyenv())
+  calls$items <- list()
+  service <- list(search_excipient = function(
+      active_ingredient,
+      excipient_query,
+      filters) {
+    calls$items[[length(calls$items) + 1L]] <- list(
+      active_ingredient = active_ingredient,
+      excipient_query = excipient_query,
+      filters = filters
+    )
+    results[[min(length(calls$items), length(results))]]
+  })
+  list(service = service, calls = calls)
+}
+
 make_ui_mixed_result <- function(conclusions = c(
     "identified", "not_identified", "indeterminate", "conflicting")) {
   results <- lapply(seq_along(conclusions), function(index) {
     make_ui_search_result(
       conclusion = conclusions[[index]],
+      registration_number = paste0("ui-00", index),
       product_name = paste("UI Product", index),
       evidence_excerpts = if (conclusions[[index]] %in%
           c("identified", "conflicting")) "Evidence" else character()
