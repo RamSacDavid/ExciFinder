@@ -100,8 +100,12 @@ build_excifinder_ui <- function() {
         .excifinder-message { margin: 8px 0; font-weight: 600; }
         .excifinder-warning { margin: 8px 0; color: #7a4b00; font-weight: 600; }
         .excifinder-input-help { color: #e9eef5; font-size: 11px; line-height: 1.35; }
-        .excifinder-state-group .box { border-top: 0; background: #ffffff; }
+        .excifinder-state-group { width: 100%; overflow: hidden; }
+        .excifinder-state-group .box { border-top: 0; background: #ffffff; width: 100%; }
         .excifinder-state-group .box-header { color: #ffffff; }
+        .excifinder-state-group .dataTables_wrapper { width: 100%; overflow: hidden; }
+        .excifinder-state-group .dataTables_scroll { max-width: 100%; }
+        .excifinder-state-group table.dataTable { width: 100% !important; }
         .state-identified .box { background: #fbe9e9; }
         .state-identified .box-header { background: #a82d35; }
         .state-not-identified .box { background: #e8f5ec; }
@@ -123,19 +127,7 @@ build_excifinder_ui <- function() {
           shiny::uiOutput("partial_errors")
         )
       ),
-      shiny::fluidRow(
-        shiny::column(
-          width = 6,
-          excifinder_state_box("identified", "results_identified")
-        ),
-        shiny::column(
-          width = 6,
-          excifinder_state_box(
-            "not_identified", "results_not_identified"
-          )
-        )
-      ),
-      shiny::uiOutput("secondary_result_groups")
+      shiny::uiOutput("result_groups")
     )
   )
 }

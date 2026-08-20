@@ -271,11 +271,19 @@ present_search_table <- function(search_result, conclusion = NULL) {
   do.call(rbind, rows)
 }
 
+# Group headers already communicate the factual conclusion. This view removes
+# only the redundant visual column; the underlying presenter and export retain it.
+present_grouped_search_table <- function(search_result, conclusion) {
+  table <- present_search_table(search_result, conclusion)
+  table[setdiff(names(table), "Estado")]
+}
+
 present_search_export <- function(search_result) {
   .presenter_assert_search_result(search_result)
   if (length(search_result$results) == 0L) {
     return(data.frame(
-      Medicamento = character(), Numero_registro = character(),
+      Medicamento = character(), Forma_farmaceutica = character(),
+      Dosis_strength = character(), Numero_registro = character(),
       Estado = character(), Cobertura = character(), Metodo_busqueda = character(),
       Fuentes = character(), Secciones = character(), Evidencias = character(),
       URL_Ficha_Tecnica = character(), stringsAsFactors = FALSE
@@ -285,6 +293,12 @@ present_search_export <- function(search_result) {
   rows <- lapply(search_result$results, function(product_result) {
     data.frame(
       Medicamento = product_result$product$name,
+      Forma_farmaceutica = .presenter_formulation_values(
+        product_result, "pharmaceutical_form"
+      ),
+      Dosis_strength = .presenter_formulation_values(
+        product_result, "strength"
+      ),
       Numero_registro = product_result$product$registration_number,
       Estado = excifinder_status_label(product_result$assessment$factual_conclusion),
       Cobertura = excifinder_coverage_label(product_result$assessment$verification_coverage),

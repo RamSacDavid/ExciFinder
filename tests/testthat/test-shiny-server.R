@@ -110,25 +110,81 @@ test_that("server renders every factual result in its separate group", {
     expect_silent(output$results_not_identified)
     expect_silent(output$results_indeterminate)
     expect_silent(output$results_conflicting)
-    secondary <- paste(as.character(output$secondary_result_groups), collapse = "")
-    expect_match(secondary, "NO VERIFICABLE", fixed = TRUE)
-    expect_match(secondary, "FUENTES DISCORDANTES", fixed = TRUE)
+    groups <- paste(as.character(output$result_groups), collapse = "")
+    expect_match(groups, "IDENTIFICADO", fixed = TRUE)
+    expect_match(groups, "NO IDENTIFICADO EN FUENTES VERIFICADAS", fixed = TRUE)
+    expect_match(groups, "NO VERIFICABLE", fixed = TRUE)
+    expect_match(groups, "FUENTES DISCORDANTES", fixed = TRUE)
+    expect_identical(lengths(regmatches(
+      groups,
+      gregexpr("col-sm-12", groups, fixed = TRUE)
+    )), 4L)
+    expect_false(grepl("col-sm-6", groups, fixed = TRUE))
   })
 })
 
-test_that("secondary groups are omitted when they have no results", {
-  fake <- new_ui_fake_search_service(make_ui_mixed_result(
-    c("identified", "not_identified")
-  ))
+test_that("each factual state renders only its own full-width panel", {
+  titles <- c(
+    identified = "IDENTIFICADO",
+    not_identified = "NO IDENTIFICADO EN FUENTES VERIFICADAS",
+    indeterminate = "NO VERIFICABLE",
+    conflicting = "FUENTES DISCORDANTES"
+  )
 
-  shiny::testServer(application_env$build_excifinder_server(fake$service), {
-    session$setInputs(buscar = 0)
-    session$flushReact()
-    session$setInputs(pa = "ingredient", excipiente = "lactosa", buscar = 1)
-    session$flushReact()
+  for (conclusion in names(titles)) {
+    fake <- new_ui_fake_search_service(make_ui_mixed_result(conclusion))
+    shiny::testServer(application_env$build_excifinder_server(fake$service), {
+      session$setInputs(buscar = 0)
+      session$flushReact()
+      session$setInputs(pa = "ingredient", excipiente = "lactosa", buscar = 1)
+      session$flushReact()
 
-    expect_null(output$secondary_result_groups)
-  })
+      groups <- paste(as.character(output$result_groups), collapse = "")
+      expect_match(groups, titles[[conclusion]], fixed = TRUE)
+      expect_match(
+        groups,
+        application_env$excifinder_state_class(conclusion),
+        fixed = TRUE
+      )
+      expect_identical(lengths(regmatches(
+        groups,
+        gregexpr("excifinder-state-group", groups, fixed = TRUE)
+      )), 1L)
+      expect_match(groups, "col-sm-12", fixed = TRUE)
+      expect_false(grepl("col-sm-6", groups, fixed = TRUE))
+      for (other in setdiff(names(titles), conclusion)) {
+        expect_false(grepl(
+          application_env$excifinder_state_class(other),
+          groups,
+          fixed = TRUE
+        ))
+      }
+    })
+  }
+})
+
+test_that("group layout stays vertical, full-width, and scroll-protected", {
+  server_text <- paste(readLines(
+    file.path(project_root(), "R", "ui", "shiny_server.R"),
+    warn = FALSE,
+    encoding = "UTF-8"
+  ), collapse = "\n")
+  ui_text <- paste(readLines(
+    file.path(project_root(), "R", "ui", "shiny_ui.R"),
+    warn = FALSE,
+    encoding = "UTF-8"
+  ), collapse = "\n")
+  result <- make_ui_mixed_result(c("identified", "identified"))
+
+  expect_identical(
+    nrow(application_env$present_grouped_search_table(result, "identified")),
+    2L
+  )
+  expect_match(server_text, "width = 12", fixed = TRUE)
+  expect_false(grepl("width = 6", server_text, fixed = TRUE))
+  expect_false(grepl("width = 6", ui_text, fixed = TRUE))
+  expect_match(server_text, "scrollX = TRUE", fixed = TRUE)
+  expect_match(ui_text, "overflow: hidden", fixed = TRUE)
 })
 
 test_that("ambiguous query renders its explanatory message", {
@@ -209,7 +265,8 @@ test_that("download data uses the latest result without another search", {
 
     expect_identical(nrow(export), 1L)
     expect_named(export, c(
-      "Medicamento", "Numero_registro", "Estado", "Cobertura",
+      "Medicamento", "Forma_farmaceutica", "Dosis_strength",
+      "Numero_registro", "Estado", "Cobertura",
       "Metodo_busqueda", "Fuentes", "Secciones", "Evidencias",
       "URL_Ficha_Tecnica"
     ))

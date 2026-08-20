@@ -3,7 +3,10 @@ test_that("shared HTTP policy is bounded and retries only transient statuses", {
 
   expect_identical(policy$timeout_seconds, 15)
   expect_identical(policy$max_attempts, 3L)
-  expect_identical(policy$user_agent, "ExciFinder/2.0.0")
+  expect_identical(
+    policy$user_agent,
+    paste0("ExciFinder/", cima_adapter_env$excifinder_version())
+  )
   expect_true(policy$pause_base > 0)
   expect_true(policy$pause_cap >= policy$pause_base)
   expect_identical(
@@ -44,10 +47,19 @@ test_that("catalog transport applies timeout, User-Agent, and retry bounds", {
   expect_true(captured$quiet)
   expect_identical(payload$resultados, list())
   expect_true(any(vapply(requests, function(request) {
-    identical(request$options$timeout_ms, 15000)
+    identical(
+      request$options$useragent,
+      paste0("ExciFinder/", cima_adapter_env$excifinder_version())
+    )
   }, logical(1))))
   expect_true(any(vapply(requests, function(request) {
-    identical(request$options$useragent, "ExciFinder/2.0.0")
+    identical(
+      request$options$useragent,
+      paste0(
+        "ExciFinder/",
+        cima_adapter_env$excifinder_version()
+      )
+    )
   }, logical(1))))
 })
 

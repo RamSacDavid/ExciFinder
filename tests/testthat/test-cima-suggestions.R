@@ -76,7 +76,10 @@ test_that("CIMA suggestion default transport shares retry and User-Agent policy"
     identical(request$options$timeout_ms, 15000)
   }, logical(1))))
   expect_true(any(vapply(requests, function(request) {
-    identical(request$options$useragent, "ExciFinder/2.0.0")
+    identical(
+      request$options$useragent,
+      paste0("ExciFinder/", cima_adapter_env$excifinder_version())
+    )
   }, logical(1))))
 })
 

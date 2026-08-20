@@ -71,8 +71,13 @@ test_that("state classes and UI CSS preserve four explicit color identities", {
   expect_true(all(vapply(statuses, function(status) {
     grepl(application_env$excifinder_state_class(status), ui_source, fixed = TRUE)
   }, logical(1))))
-  expect_match(ui_html, "IDENTIFICADO", fixed = TRUE)
-  expect_match(ui_html, "NO IDENTIFICADO EN FUENTES VERIFICADAS", fixed = TRUE)
+  group_headers <- paste(vapply(statuses, function(status) {
+    as.character(application_env$excifinder_state_box(status, paste0("test_", status)))
+  }, character(1)), collapse = "")
+  expect_match(group_headers, "IDENTIFICADO", fixed = TRUE)
+  expect_match(group_headers, "NO IDENTIFICADO EN FUENTES VERIFICADAS", fixed = TRUE)
+  expect_match(group_headers, "NO VERIFICABLE", fixed = TRUE)
+  expect_match(group_headers, "FUENTES DISCORDANTES", fixed = TRUE)
   expect_match(ui_html, "pueden no ser exhaustivas", fixed = TRUE)
   expect_match(ui_html, '"create":true', fixed = TRUE)
   expect_match(
@@ -136,6 +141,14 @@ test_that("parameterized tables contain only the requested factual group", {
     expect_identical(table$Cobertura[[1]], "Completa")
     expect_match(table$Evidencia[[1]], "Original lactose excerpt", fixed = TRUE)
     expect_match(table$`Ficha técnica`[[1]], "https://example.test/document.pdf", fixed = TRUE)
+
+    grouped <- application_env$present_grouped_search_table(mixed, conclusion)
+    expect_false("Estado" %in% names(grouped))
+    expect_named(grouped, c(
+      "Cobertura", "Medicamento", "Forma farmacéutica", "Dosis / strength",
+      "N.º registro", "Fuente", "Evidencia", "Ficha técnica"
+    ))
+    expect_identical(nrow(grouped), 1L)
   }
 })
 
@@ -208,10 +221,13 @@ test_that("export preserves complete evidence and audit columns", {
   export <- application_env$present_search_export(result)
 
   expect_named(export, c(
-    "Medicamento", "Numero_registro", "Estado", "Cobertura",
+    "Medicamento", "Forma_farmaceutica", "Dosis_strength",
+    "Numero_registro", "Estado", "Cobertura",
     "Metodo_busqueda", "Fuentes", "Secciones", "Evidencias",
     "URL_Ficha_Tecnica"
   ))
+  expect_identical(export$Forma_farmaceutica[[1]], "Comprimido")
+  expect_identical(export$Dosis_strength[[1]], "500 mg")
   expect_match(export$Evidencias[[1]], "First full excerpt", fixed = TRUE)
   expect_match(export$Evidencias[[1]], "Second full excerpt", fixed = TRUE)
   expect_match(export$Evidencias[[1]], " ||| ", fixed = TRUE)

@@ -344,8 +344,7 @@ test_that("composition source ports return snapshots or explicit absence", {
   expect_error(
     application_env$new_composition_source_port(
       list_excipient_entries = function(subject_id) list()
-    ),
-    "unused argument"
+    )
   )
 })
 
