@@ -32,13 +32,90 @@ excifinder_dt_escape_columns <- function(table) {
   setdiff(names(table), "Ficha técnica")
 }
 
-build_excifinder_server <- function(search_service) {
-  if (!is.list(search_service) || !is.function(search_service$search_excipient)) {
+build_excifinder_server <- function(
+    search_service = NULL,
+    active_ingredient_suggestion_source = NULL,
+    excipient_suggestion_service = NULL,
+    service_factory = NULL) {
+  valid_search_service <- function(service) {
+    is.list(service) && is.function(service$search_excipient)
+  }
+  if (is.null(service_factory) && !valid_search_service(search_service)) {
     stop("`search_service` must expose `search_excipient()`.", call. = FALSE)
+  }
+  if (!is.null(service_factory) && !is.function(service_factory)) {
+    stop("`service_factory` must be a function.", call. = FALSE)
+  }
+
+  suggestion_choices <- function(suggestions, current = NULL) {
+    values <- vapply(suggestions, `[[`, character(1), "value")
+    labels <- vapply(suggestions, `[[`, character(1), "label")
+    choices <- stats::setNames(values, labels)
+    if (is.character(current) && length(current) == 1L &&
+        !is.na(current) && nzchar(current) && !current %in% values) {
+      choices <- c(stats::setNames(current, current), choices)
+    }
+    choices
   }
 
   function(input, output, session) {
+    services <- if (is.function(service_factory)) service_factory() else list(
+      search_service = search_service,
+      active_ingredient_suggestion_source = active_ingredient_suggestion_source,
+      excipient_suggestion_service = excipient_suggestion_service
+    )
+    if (!valid_search_service(services$search_service)) {
+      stop("Session services must expose a valid search service.", call. = FALSE)
+    }
     latest_result <- shiny::reactiveVal(NULL)
+
+    pa_query <- shiny::debounce(shiny::reactive({
+      if (is.null(input$pa_query)) "" else input$pa_query
+    }), millis = 300L)
+    shiny::observeEvent(pa_query(), {
+      query <- trimws(pa_query())
+      if (stringi::stri_length(query) < 2L ||
+          !is_suggestion_source_port(
+            services$active_ingredient_suggestion_source
+          )) return()
+      suggestions <- tryCatch(
+        services$active_ingredient_suggestion_source$suggest_active_ingredients(
+          query, 15L
+        ),
+        error = function(error) list()
+      )
+      shiny::updateSelectizeInput(
+        session,
+        "pa",
+        choices = suggestion_choices(suggestions, input$pa),
+        selected = input$pa,
+        server = TRUE
+      )
+    }, ignoreInit = FALSE)
+
+    excipient_context <- shiny::debounce(shiny::reactive({
+      if (is.null(input$pa)) "" else input$pa
+    }), millis = 300L)
+    shiny::observeEvent(excipient_context(), {
+      active_ingredient <- trimws(excipient_context())
+      service <- services$excipient_suggestion_service
+      if (stringi::stri_length(active_ingredient) < 2L ||
+          !is.list(service) ||
+          !is.function(service$suggest_excipients_for_active_ingredient)) return()
+      suggestions <- tryCatch(
+        service$suggest_excipients_for_active_ingredient(
+          active_ingredient, 15L
+        ),
+        error = function(error) list()
+      )
+      shiny::updateSelectizeInput(
+        session,
+        "excipiente",
+        choices = suggestion_choices(suggestions, input$excipiente),
+        selected = input$excipiente,
+        server = TRUE
+      )
+    }, ignoreInit = FALSE)
 
     shiny::observeEvent(input$buscar, {
       validation_error <- tryCatch(
@@ -54,7 +131,7 @@ build_excifinder_server <- function(search_service) {
         return()
       }
       result <- tryCatch(
-        search_service$search_excipient(
+        services$search_service$search_excipient(
           active_ingredient = input$pa,
           excipient_query = input$excipiente,
           filters = list(authorized = TRUE, marketed = TRUE)
@@ -122,8 +199,50 @@ build_excifinder_server <- function(search_service) {
         table,
         rownames = FALSE,
         escape = excifinder_dt_escape_columns(table),
-        options = list(pageLength = 15L, autoWidth = TRUE)
+        options = list(pageLength = 15L, autoWidth = TRUE, scrollX = TRUE)
       )
+    })
+
+    render_result_group <- function(conclusion) {
+      DT::renderDT({
+        result <- latest_result()
+        shiny::req(result)
+        table <- present_grouped_search_table(result, conclusion)
+        shiny::req(nrow(table) > 0L)
+        DT::datatable(
+          table,
+          rownames = FALSE,
+          escape = excifinder_dt_escape_columns(table),
+          options = list(pageLength = 15L, autoWidth = TRUE, scrollX = TRUE)
+        )
+      })
+    }
+    output$results_identified <- render_result_group("identified")
+    output$results_not_identified <- render_result_group("not_identified")
+    output$results_indeterminate <- render_result_group("indeterminate")
+    output$results_conflicting <- render_result_group("conflicting")
+
+    output$result_groups <- shiny::renderUI({
+      result <- latest_result()
+      shiny::req(result)
+      groups <- split_search_results_by_conclusion(result)
+      conclusions <- c(
+        "identified", "not_identified", "indeterminate", "conflicting"
+      )
+      visible <- conclusions[vapply(
+        groups[conclusions], length, integer(1)
+      ) > 0L]
+      if (length(visible) == 0L) return(NULL)
+      rows <- lapply(visible, function(conclusion) {
+        shiny::fluidRow(shiny::column(
+          width = 12,
+          excifinder_state_box(
+            conclusion,
+            paste0("results_", conclusion)
+          )
+        ))
+      })
+      do.call(shiny::tagList, rows)
     })
 
     download_data <- shiny::reactive({

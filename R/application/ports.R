@@ -233,6 +233,33 @@ is_composition_source_port <- function(x) {
   inherits(x, "composition_source_port")
 }
 
+# Lightweight lookup boundary used only to assist free-text entry. Suggestions
+# are convenience data and do not carry any factual assessment semantics.
+new_suggestion_source_port <- function(suggest_active_ingredients = NULL) {
+  .port_assert_function(suggest_active_ingredients, "suggest_active_ingredients")
+
+  .new_port(
+    list(suggest_active_ingredients = function(query, limit = 15L) {
+      .port_assert_non_empty_string(query, "query")
+      if (length(limit) != 1L || is.na(limit) || !is.numeric(limit) ||
+          limit < 1 || limit != as.integer(limit)) {
+        .port_abort("`limit` must be a positive integer.")
+      }
+      result <- suggest_active_ingredients(query, as.integer(limit))
+      if (!is.list(result) ||
+          !all(vapply(result, inherits, logical(1), what = "suggestion"))) {
+        .port_abort("`suggest_active_ingredients` must return suggestion objects.")
+      }
+      unname(utils::head(result, as.integer(limit)))
+    }),
+    "suggestion_source_port"
+  )
+}
+
+is_suggestion_source_port <- function(x) {
+  inherits(x, "suggestion_source_port")
+}
+
 # This repository port persists the canonical product catalogue already known
 # by the application. It is separate from document and assessment persistence.
 new_catalog_repository_port <- function(

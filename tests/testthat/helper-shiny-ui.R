@@ -3,12 +3,20 @@ make_ui_search_result <- function(
     coverage = "complete",
     strategy = "literal",
     product_name = "UI Product",
+    pharmaceutical_form = "Comprimido",
+    strength = "500 mg",
     evidence_excerpts = "Original lactose excerpt",
     smpc_urls = "https://example.test/document.pdf",
     include_structured = FALSE,
     errors = list()) {
   product <- make_search_product("ui-001", product_name)
   product_id <- domain_env$medicinal_product_id(product)
+  formulation <- domain_env$new_formulation(
+    id = paste0(product_id, ":formulation:1"),
+    medicinal_product_id = product_id,
+    pharmaceutical_form = pharmaceutical_form,
+    strength = strength
+  )
   excipient <- domain_env$new_excipient("ui-excipient", "lactosa")
   artifacts <- list()
   attempts <- list()
@@ -89,7 +97,7 @@ make_ui_search_result <- function(
   )
   product_result <- application_env$new_product_excipient_result(
     product,
-    list(),
+    list(formulation),
     list(),
     assessment,
     source_artifacts = artifacts
@@ -172,6 +180,58 @@ new_ui_fake_search_service <- function(result) {
       filters = filters
     )
     result
+  })
+  list(service = service, calls = calls)
+}
+
+make_ui_mixed_result <- function(conclusions = c(
+    "identified", "not_identified", "indeterminate", "conflicting")) {
+  results <- lapply(seq_along(conclusions), function(index) {
+    make_ui_search_result(
+      conclusion = conclusions[[index]],
+      product_name = paste("UI Product", index),
+      evidence_excerpts = if (conclusions[[index]] %in%
+          c("identified", "conflicting")) "Evidence" else character()
+    )
+  })
+  mixed <- results[[1]]
+  mixed$results <- lapply(results, function(result) result$results[[1]])
+  mixed
+}
+
+new_ui_fake_suggestion_source <- function(values = character(), fail = FALSE) {
+  calls <- new.env(parent = emptyenv())
+  calls$items <- list()
+  source <- application_env$new_suggestion_source_port(function(query, limit) {
+    calls$items[[length(calls$items) + 1L]] <- list(query = query, limit = limit)
+    if (fail) stop("controlled suggestion failure")
+    lapply(seq_len(min(length(values), limit)), function(index) {
+      application_env$new_suggestion(
+        paste0("suggestion-", index), values[[index]], values[[index]]
+      )
+    })
+  })
+  list(source = source, calls = calls)
+}
+
+new_ui_fake_excipient_suggestion_service <- function(
+    values = character(),
+    fail = FALSE) {
+  calls <- new.env(parent = emptyenv())
+  calls$items <- list()
+  service <- list(suggest_excipients_for_active_ingredient = function(
+      active_ingredient,
+      limit) {
+    calls$items[[length(calls$items) + 1L]] <- list(
+      active_ingredient = active_ingredient,
+      limit = limit
+    )
+    if (fail) stop("controlled excipient suggestion failure")
+    lapply(seq_len(min(length(values), limit)), function(index) {
+      application_env$new_suggestion(
+        paste0("excipient-", index), values[[index]], values[[index]]
+      )
+    })
   })
   list(service = service, calls = calls)
 }

@@ -32,6 +32,32 @@ excifinder_status_label <- function(status) {
   unname(labels[[status]])
 }
 
+excifinder_state_class <- function(status) {
+  classes <- c(
+    identified = "state-identified",
+    not_identified = "state-not-identified",
+    indeterminate = "state-indeterminate",
+    conflicting = "state-conflicting"
+  )
+  if (!status %in% names(classes)) return("state-unknown")
+  unname(classes[[status]])
+}
+
+split_search_results_by_conclusion <- function(search_result) {
+  .presenter_assert_search_result(search_result)
+  conclusions <- c(
+    "identified", "not_identified", "indeterminate", "conflicting"
+  )
+  groups <- stats::setNames(vector("list", length(conclusions)), conclusions)
+  for (product_result in search_result$results) {
+    conclusion <- product_result$assessment$factual_conclusion
+    if (conclusion %in% conclusions) {
+      groups[[conclusion]][[length(groups[[conclusion]]) + 1L]] <- product_result
+    }
+  }
+  groups
+}
+
 excifinder_coverage_label <- function(coverage) {
   labels <- c(
     complete = "Completa",
@@ -179,23 +205,47 @@ excifinder_resolution_label <- function(strategy) {
   paste(unique(vapply(artifacts, `[[`, character(1), "url")), collapse = " ||| ")
 }
 
-present_search_table <- function(search_result) {
+.presenter_formulation_values <- function(product_result, field) {
+  values <- vapply(product_result$formulations, function(formulation) {
+    value <- formulation[[field]]
+    if (is.null(value)) "" else value
+  }, character(1))
+  values <- unique(values[nzchar(values)])
+  paste(values, collapse = " · ")
+}
+
+.presenter_empty_table <- function() {
+  data.frame(
+    Estado = character(),
+    Cobertura = character(),
+    Medicamento = character(),
+    `Forma farmacéutica` = character(),
+    `Dosis / strength` = character(),
+    `N.º registro` = character(),
+    Fuente = character(),
+    Evidencia = character(),
+    `Ficha técnica` = character(),
+    check.names = FALSE,
+    stringsAsFactors = FALSE
+  )
+}
+
+present_search_table <- function(search_result, conclusion = NULL) {
   .presenter_assert_search_result(search_result)
   if (!identical(search_result$resolution$status, "resolved") ||
       length(search_result$results) == 0L) {
-    return(data.frame(
-      Estado = character(),
-      Cobertura = character(),
-      Medicamento = character(),
-      `N.º registro` = character(),
-      Fuente = character(),
-      Evidencia = character(),
-      `Ficha técnica` = character(),
-      check.names = FALSE,
-      stringsAsFactors = FALSE
-    ))
+    return(.presenter_empty_table())
   }
-  rows <- lapply(search_result$results, function(product_result) {
+  results <- search_result$results
+  if (!is.null(conclusion)) {
+    groups <- split_search_results_by_conclusion(search_result)
+    if (!conclusion %in% names(groups)) {
+      stop("Unknown factual conclusion.", call. = FALSE)
+    }
+    results <- groups[[conclusion]]
+  }
+  if (length(results) == 0L) return(.presenter_empty_table())
+  rows <- lapply(results, function(product_result) {
     data.frame(
       Estado = excifinder_status_label(
         product_result$assessment$factual_conclusion
@@ -204,6 +254,12 @@ present_search_table <- function(search_result) {
         product_result$assessment$verification_coverage
       ),
       Medicamento = product_result$product$name,
+      `Forma farmacéutica` = .presenter_formulation_values(
+        product_result, "pharmaceutical_form"
+      ),
+      `Dosis / strength` = .presenter_formulation_values(
+        product_result, "strength"
+      ),
       `N.º registro` = product_result$product$registration_number,
       Fuente = .presenter_source_labels(product_result),
       Evidencia = .presenter_evidence_display(product_result),
@@ -215,11 +271,19 @@ present_search_table <- function(search_result) {
   do.call(rbind, rows)
 }
 
+# Group headers already communicate the factual conclusion. This view removes
+# only the redundant visual column; the underlying presenter and export retain it.
+present_grouped_search_table <- function(search_result, conclusion) {
+  table <- present_search_table(search_result, conclusion)
+  table[setdiff(names(table), "Estado")]
+}
+
 present_search_export <- function(search_result) {
   .presenter_assert_search_result(search_result)
   if (length(search_result$results) == 0L) {
     return(data.frame(
-      Medicamento = character(), Numero_registro = character(),
+      Medicamento = character(), Forma_farmaceutica = character(),
+      Dosis_strength = character(), Numero_registro = character(),
       Estado = character(), Cobertura = character(), Metodo_busqueda = character(),
       Fuentes = character(), Secciones = character(), Evidencias = character(),
       URL_Ficha_Tecnica = character(), stringsAsFactors = FALSE
@@ -229,6 +293,12 @@ present_search_export <- function(search_result) {
   rows <- lapply(search_result$results, function(product_result) {
     data.frame(
       Medicamento = product_result$product$name,
+      Forma_farmaceutica = .presenter_formulation_values(
+        product_result, "pharmaceutical_form"
+      ),
+      Dosis_strength = .presenter_formulation_values(
+        product_result, "strength"
+      ),
       Numero_registro = product_result$product$registration_number,
       Estado = excifinder_status_label(product_result$assessment$factual_conclusion),
       Cobertura = excifinder_coverage_label(product_result$assessment$verification_coverage),
