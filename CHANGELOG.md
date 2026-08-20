@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 2.1.0 - 2026-08-21
+
+- Sustituido el shell basado en AdminLTE/shinydashboard por una interfaz Shiny propia, clara, responsive y orientada a búsqueda.
+- Reorganizada la búsqueda de principio activo y excipiente como interacción principal y trasladada la exportación Excel a una acción secundaria.
+- Sustituida la tabla visible de resultados por una navegación clínica master–detail agrupada por estado factual.
+- Añadida una ficha por medicamento con dosis, forma farmacéutica, vía de administración, excipiente consultado, cobertura y fuentes verificadas.
+- Añadida visualización individual de la verificación por fuente y de todas las evidencias disponibles, preservando excerpts y términos coincidentes.
+- Mejorada la experiencia móvil y tablet sin añadir nuevas dependencias de frontend.
+- Mejorada la accesibilidad mediante navegación por teclado, estados ARIA y preservación del foco al cambiar de medicamento.
+- Conservados sin cambios la política factual, el matching, el autocomplete, la memoización y el contrato de exportación Excel.
+
 ## 2.0.1 - 2026-08-20
 
 - Restaurada la presentación separada de resultados según estado factual.
