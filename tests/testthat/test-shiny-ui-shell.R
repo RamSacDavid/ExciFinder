@@ -6,10 +6,44 @@ test_that("custom shell preserves the public UI contract", {
     expect_match(ui_html, paste0('id="', input_id, '"'), fixed = TRUE)
   }
   expect_match(rendered$head, 'href="excifinder.css"', fixed = TRUE)
+  expect_match(rendered$head, 'src="excifinder.js"', fixed = TRUE)
   expect_match(ui_html, "excifinder-header", fixed = TRUE)
   expect_match(ui_html, "excifinder-search-card", fixed = TRUE)
   expect_match(ui_html, "excifinder-utility-row", fixed = TRUE)
   expect_match(ui_html, "excifinder-clinical-notice", fixed = TRUE)
+})
+
+test_that("focus handler targets the selected master button safely", {
+  script <- paste(readLines(
+    file.path(project_root(), "www", "excifinder.js"),
+    warn = FALSE,
+    encoding = "UTF-8"
+  ), collapse = "\n")
+
+  expect_match(
+    script,
+    'Shiny.addCustomMessageHandler(\n    "excifinder-focus-master-product"',
+    fixed = TRUE
+  )
+  expect_match(script, "new MutationObserver", fixed = TRUE)
+  expect_match(
+    script,
+    'button.excifinder-master-item[data-product-id]',
+    fixed = TRUE
+  )
+  expect_match(
+    script,
+    "buttons[index].dataset.productId === message.product_id",
+    fixed = TRUE
+  )
+  expect_match(
+    script,
+    'buttons[index].getAttribute("aria-pressed") === "true"',
+    fixed = TRUE
+  )
+  expect_match(script, "focus({ preventScroll: true })", fixed = TRUE)
+  expect_match(script, "observer.disconnect()", fixed = TRUE)
+  expect_false(grepl("message.product_id]", script, fixed = TRUE))
 })
 
 test_that("custom shell has no AdminLTE or shinydashboard components", {

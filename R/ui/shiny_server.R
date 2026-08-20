@@ -32,6 +32,20 @@ excifinder_dt_escape_columns <- function(table) {
   setdiff(names(table), "Ficha técnica")
 }
 
+excifinder_schedule_master_focus <- function(session, product_id) {
+  if (!is.character(product_id) || length(product_id) != 1L ||
+      is.na(product_id) || !nzchar(product_id)) {
+    return(invisible(FALSE))
+  }
+  session$onFlushed(function() {
+    session$sendCustomMessage(
+      "excifinder-focus-master-product",
+      list(product_id = product_id)
+    )
+  }, once = TRUE)
+  invisible(TRUE)
+}
+
 build_excifinder_server <- function(
     search_service = NULL,
     active_ingredient_suggestion_source = NULL,
@@ -197,6 +211,7 @@ build_excifinder_server <- function(
           browser$selected_product_id,
           input$selected_product_id)) {
         selected_product_id(input$selected_product_id)
+        excifinder_schedule_master_focus(session, input$selected_product_id)
       }
     }, ignoreInit = TRUE)
 

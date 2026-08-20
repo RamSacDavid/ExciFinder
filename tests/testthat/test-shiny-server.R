@@ -1,3 +1,39 @@
+test_that("master focus restoration waits for flush and targets a stable ID", {
+  callbacks <- list()
+  messages <- list()
+  fake_session <- list(
+    onFlushed = function(callback, once) {
+      callbacks[[length(callbacks) + 1L]] <<- list(
+        callback = callback,
+        once = once
+      )
+    },
+    sendCustomMessage = function(type, message) {
+      messages[[length(messages) + 1L]] <<- list(
+        type = type,
+        message = message
+      )
+    }
+  )
+
+  expect_false(application_env$excifinder_schedule_master_focus(
+    fake_session, NULL
+  ))
+  expect_length(callbacks, 0L)
+  expect_true(application_env$excifinder_schedule_master_focus(
+    fake_session, "AUTH:ui-002"
+  ))
+  expect_length(messages, 0L)
+  expect_true(callbacks[[1L]]$once)
+
+  callbacks[[1L]]$callback()
+
+  expect_identical(messages, list(list(
+    type = "excifinder-focus-master-product",
+    message = list(product_id = "AUTH:ui-002")
+  )))
+})
+
 test_that("server calls injected service once with canonical inputs and filters", {
   fake <- new_ui_fake_search_service(make_ui_search_result())
 
@@ -143,6 +179,17 @@ test_that("selection changes detail without repeating factual search", {
   fake <- new_ui_fake_search_service(make_ui_mixed_result(c(
     "identified", "identified"
   )))
+  focus_requests <- character()
+  original_focus_scheduler <- application_env$excifinder_schedule_master_focus
+  application_env$excifinder_schedule_master_focus <- function(
+      session,
+      product_id) {
+    focus_requests <<- c(focus_requests, product_id)
+    invisible(TRUE)
+  }
+  on.exit({
+    application_env$excifinder_schedule_master_focus <- original_focus_scheduler
+  }, add = TRUE)
 
   shiny::testServer(application_env$build_excifinder_server(fake$service), {
     session$setInputs(buscar = 0)
@@ -150,12 +197,16 @@ test_that("selection changes detail without repeating factual search", {
     session$setInputs(pa = "ingredient", excipiente = "lactosa", buscar = 1)
     session$flushReact()
     expect_identical(selected_product_id(), "AUTH:ui-001")
+    expect_length(focus_requests, 0L)
+    result_before_selection <- latest_result()
 
     session$setInputs(selected_product_id = "AUTH:ui-002")
     session$flushReact()
 
     expect_identical(selected_product_id(), "AUTH:ui-002")
+    expect_identical(latest_result(), result_before_selection)
     expect_identical(length(fake$calls$items), 1L)
+    expect_identical(focus_requests, "AUTH:ui-002")
     browser <- paste(as.character(output$result_browser), collapse = "")
     expect_match(browser, "UI Product 2", fixed = TRUE)
     expect_match(browser, "aria-pressed=\"true\"", fixed = TRUE)
@@ -169,6 +220,17 @@ test_that("a new search resets selection to its first factual product", {
     product_name = "New Search Product"
   )
   fake <- new_ui_sequential_fake_search_service(list(first, second))
+  focus_requests <- character()
+  original_focus_scheduler <- application_env$excifinder_schedule_master_focus
+  application_env$excifinder_schedule_master_focus <- function(
+      session,
+      product_id) {
+    focus_requests <<- c(focus_requests, product_id)
+    invisible(TRUE)
+  }
+  on.exit({
+    application_env$excifinder_schedule_master_focus <- original_focus_scheduler
+  }, add = TRUE)
 
   shiny::testServer(application_env$build_excifinder_server(fake$service), {
     session$setInputs(buscar = 0)
@@ -178,12 +240,14 @@ test_that("a new search resets selection to its first factual product", {
     session$setInputs(selected_product_id = "AUTH:ui-002")
     session$flushReact()
     expect_identical(selected_product_id(), "AUTH:ui-002")
+    expect_identical(focus_requests, "AUTH:ui-002")
 
     session$setInputs(pa = "second", buscar = 2)
     session$flushReact()
 
     expect_identical(selected_product_id(), "AUTH:new-001")
     expect_identical(length(fake$calls$items), 2L)
+    expect_identical(focus_requests, "AUTH:ui-002")
     expect_match(
       paste(as.character(output$result_browser), collapse = ""),
       "New Search Product",

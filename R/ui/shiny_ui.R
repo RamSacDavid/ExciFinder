@@ -253,6 +253,10 @@ build_excifinder_ui <- function() {
         rel = "stylesheet",
         type = "text/css",
         href = "excifinder.css"
+      ),
+      shiny::tags$script(
+        src = "excifinder.js",
+        defer = NA
       )
     ),
     shiny::tags$header(
