@@ -221,6 +221,36 @@ new_excipient_search_result <- function(
   filters
 }
 
+.search_validate_progress <- function(progress) {
+  if (!is.null(progress) && !is.function(progress)) {
+    .excipient_application_abort("`progress` must be NULL or a function.")
+  }
+  progress
+}
+
+.search_emit_progress <- function(
+    progress,
+    event,
+    current,
+    total,
+    product_id = NULL,
+    product_name = NULL) {
+  if (is.null(progress)) {
+    return(invisible(NULL))
+  }
+  tryCatch(
+    progress(
+      event = event,
+      current = current,
+      total = total,
+      product_id = product_id,
+      product_name = product_name
+    ),
+    error = function(error) NULL
+  )
+  invisible(NULL)
+}
+
 .search_order_products <- function(products) {
   if (length(products) < 2L) {
     return(unname(products))
@@ -344,7 +374,9 @@ new_excipient_search_service <- function(
   search <- function(
       active_ingredient,
       excipient_query,
-      filters = list(authorized = TRUE, marketed = TRUE)) {
+      filters = list(authorized = TRUE, marketed = TRUE),
+      progress = NULL) {
+    progress <- .search_validate_progress(progress)
     validate_search_input_text(active_ingredient, "El principio activo")
     if (!is.character(excipient_query) || length(excipient_query) != 1L ||
         is.na(excipient_query)) {
@@ -443,12 +475,15 @@ new_excipient_search_service <- function(
         ))
       ))
     }
-    if (length(products) == 0L) {
-      return(new_excipient_search_result(query, resolution))
-    }
     product_ids <- vapply(products, medicinal_product_id, character(1))
     products <- products[!duplicated(product_ids)]
     products <- .search_order_products(products)
+    .search_emit_progress(
+      progress,
+      event = "products_discovered",
+      current = 0L,
+      total = length(products)
+    )
 
     results <- list()
     errors <- list()
@@ -456,7 +491,16 @@ new_excipient_search_service <- function(
       errors[[length(errors) + 1L]] <<- error
     }
 
-    for (summary in products) {
+    for (product_index in seq_along(products)) {
+      summary <- products[[product_index]]
+      .search_emit_progress(
+        progress,
+        event = "product_started",
+        current = product_index - 1L,
+        total = length(products),
+        product_id = medicinal_product_id(summary),
+        product_name = summary$name
+      )
       summary_id <- medicinal_product_id(summary)
       detail_call <- .search_safe_call(function() product_source$get_product(summary_id))
       if (!detail_call$ok) {
@@ -696,6 +740,12 @@ new_excipient_search_service <- function(
       }, character(1))
       results <- results[order(tolower(result_names), result_ids, method = "radix")]
     }
+    .search_emit_progress(
+      progress,
+      event = "complete",
+      current = length(products),
+      total = length(products)
+    )
     new_excipient_search_result(query, resolution, results, errors)
   }
 
