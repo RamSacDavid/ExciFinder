@@ -14,6 +14,26 @@ ExciFinder es una aplicación Shiny para recuperar, organizar y analizar de form
 
 Su objetivo es facilitar la revisión de fuentes oficiales para medicamentos autorizados y comercializados. La evaluación actual se realiza a nivel de `MedicinalProduct` (número de registro), no de cada `Presentation` comercial.
 
+## Capturas
+
+### Consulta de excipientes
+
+ExciFinder permite seleccionar un principio activo y un excipiente y consultar los medicamentos autorizados y comercializados disponibles en CIMA/AEMPS.
+
+![Consulta principal de ExciFinder](docs/screenshots/excifinder-overview.png)
+
+### Resultados y trazabilidad de la evidencia
+
+Los resultados se agrupan según su conclusión factual. Para cada medicamento se muestran el número de registro, la formulación, la cobertura de verificación, las fuentes consultadas y la evidencia que sustenta el resultado.
+
+![Detalle de resultados y evidencia en ExciFinder](docs/screenshots/excifinder-clinical-detail.png)
+
+### Progreso en búsquedas extensas
+
+Cuando un principio activo tiene un gran número de medicamentos, ExciFinder muestra el progreso real de la verificación respecto al total descubierto en CIMA, sin aplicar un límite silencioso al número de medicamentos evaluados.
+
+![Barra de progreso durante una búsqueda extensa en ExciFinder](docs/screenshots/excifinder-search-progress.png)
+
 ## Interpretación de resultados
 
 Cada medicamento recibe un estado factual y una cobertura de verificación independientes.
