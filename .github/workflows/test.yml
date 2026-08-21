@@ -33,7 +33,7 @@ jobs:
         run: Rscript -e "testthat::test_dir('tests/testthat')"
 
       - name: Check renv consistency
-        run: Rscript -e "renv::status()"
+        run: Rscript -e "s <- renv::status(); if (!isTRUE(s[['synchronized']])) stop('renv is out of sync')"
 
       - name: Validate application startup
         run: Rscript -e "invisible(parse(file = 'app.R')); app <- source('app.R')[['value']]; stopifnot(inherits(app, 'shiny.appobj'))"

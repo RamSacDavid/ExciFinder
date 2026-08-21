@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 2.1.1 - 2026-08-21
+
+- Mejorado el contraste del estado «Fuentes discordantes» para cumplir WCAG AA con texto blanco.
+- Eliminada la dependencia residual no utilizada de `shinydashboard`.
+- Endurecida la comprobación de consistencia de `renv` en integración continua.
+- Añadido acceso visible a la aplicación pública y estado de CI en la documentación principal.
+
 ## 2.1.0 - 2026-08-21
 
 - Sustituido el shell basado en AdminLTE/shinydashboard por una interfaz Shiny propia, clara, responsive y orientada a búsqueda.

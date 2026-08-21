@@ -1,5 +1,15 @@
 # ExciFinder
 
+[![test](https://github.com/RamSacDavid/ExciFinder/actions/workflows/test.yml/badge.svg)](https://github.com/RamSacDavid/ExciFinder/actions/workflows/test.yml)
+
+## Probar ExciFinder
+
+La aplicación pública está disponible en:
+
+**[Abrir ExciFinder](https://qshhfj-d0ram0rez.shinyapps.io/ExciFinder/)**
+
+La aplicación consulta información oficial de CIMA/AEMPS en tiempo real. Los resultados deben interpretarse junto con su cobertura de verificación y comprobarse en la ficha técnica oficial antes de tomar decisiones clínicas.
+
 ExciFinder es una aplicación Shiny para recuperar, organizar y analizar de forma determinista información oficial sobre excipientes publicada en CIMA por la Agencia Española de Medicamentos y Productos Sanitarios (AEMPS).
 
 Su objetivo es facilitar la revisión de fuentes oficiales para medicamentos autorizados y comercializados. La evaluación actual se realiza a nivel de `MedicinalProduct` (número de registro), no de cada `Presentation` comercial.
