@@ -175,18 +175,24 @@ make_ui_partial_error <- function() {
   )
 }
 
-new_ui_fake_search_service <- function(result) {
+new_ui_fake_search_service <- function(result, progress_events = list()) {
   calls <- new.env(parent = emptyenv())
   calls$items <- list()
+  calls$progress <- list()
   service <- list(search_excipient = function(
       active_ingredient,
       excipient_query,
-      filters) {
+      filters,
+      progress = NULL) {
     calls$items[[length(calls$items) + 1L]] <- list(
       active_ingredient = active_ingredient,
       excipient_query = excipient_query,
       filters = filters
     )
+    calls$progress[[length(calls$progress) + 1L]] <- progress
+    for (event in progress_events) {
+      do.call(progress, event)
+    }
     result
   })
   list(service = service, calls = calls)
@@ -198,7 +204,8 @@ new_ui_sequential_fake_search_service <- function(results) {
   service <- list(search_excipient = function(
       active_ingredient,
       excipient_query,
-      filters) {
+      filters,
+      progress = NULL) {
     calls$items[[length(calls$items) + 1L]] <- list(
       active_ingredient = active_ingredient,
       excipient_query = excipient_query,

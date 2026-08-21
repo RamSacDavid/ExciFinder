@@ -46,6 +46,31 @@ excifinder_schedule_master_focus <- function(session, product_id) {
   invisible(TRUE)
 }
 
+excifinder_search_progress_handler <- function(set_progress) {
+  force(set_progress)
+  function(event, current, total, product_id = NULL, product_name = NULL) {
+    if (identical(event, "products_discovered")) {
+      detail <- if (identical(total, 0L)) {
+        "No se encontraron medicamentos para verificar."
+      } else {
+        sprintf("%d medicamentos encontrados. Iniciando verificación.", total)
+      }
+      set_progress(value = 0, detail = detail)
+    } else if (identical(event, "product_started") && total > 0L) {
+      set_progress(
+        value = current / total,
+        detail = sprintf("Verificando medicamentos: %d de %d", current, total)
+      )
+    } else if (identical(event, "complete")) {
+      set_progress(
+        value = 1,
+        detail = sprintf("Verificación completada: %d de %d", current, total)
+      )
+    }
+    invisible(NULL)
+  }
+}
+
 build_excifinder_server <- function(
     search_service = NULL,
     active_ingredient_suggestion_source = NULL,
@@ -145,11 +170,20 @@ build_excifinder_server <- function(
         shiny::showNotification(validation_error, type = "error")
         return()
       }
-      result <- tryCatch(
+      result <- shiny::withProgress(
+        message = "Consultando CIMA…",
+        value = 0,
+        detail = "Buscando medicamentos autorizados y comercializados.",
+        {
+          progress <- excifinder_search_progress_handler(function(value, detail) {
+            shiny::setProgress(value = value, detail = detail)
+          })
+          tryCatch(
         services$search_service$search_excipient(
           active_ingredient = input$pa,
           excipient_query = input$excipiente,
-          filters = list(authorized = TRUE, marketed = TRUE)
+          filters = list(authorized = TRUE, marketed = TRUE),
+          progress = progress
         ),
         error = function(error) {
           shiny::showNotification(
@@ -157,6 +191,8 @@ build_excifinder_server <- function(
             type = "error"
           )
           NULL
+        }
+          )
         }
       )
       if (!is.null(result)) {

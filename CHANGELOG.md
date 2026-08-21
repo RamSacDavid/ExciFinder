@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 2.1.2 - 2026-08-21
+
+- Añadido progreso visible durante la búsqueda y verificación de medicamentos.
+- La barra refleja el número real de medicamentos procesados respecto al total descubierto en CIMA.
+- Conservada sin cambios la política factual y la exhaustividad de la búsqueda, incluso para principios activos con un gran número de medicamentos.
+
 ## 2.1.1 - 2026-08-21
 
 - Mejorado el contraste del estado «Fuentes discordantes» para cumplir WCAG AA con texto blanco.

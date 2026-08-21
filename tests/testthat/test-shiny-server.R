@@ -60,6 +60,33 @@ test_that("server calls injected service once with canonical inputs and filters"
   })
 })
 
+test_that("search progress events are translated without altering the result", {
+  progress_events <- list(
+    list(event = "products_discovered", current = 0L, total = 1L),
+    list(
+      event = "product_started", current = 0L, total = 1L,
+      product_id = "AUTH:ui-001", product_name = "UI Product"
+    ),
+    list(event = "complete", current = 1L, total = 1L)
+  )
+  fake <- new_ui_fake_search_service(
+    make_ui_search_result(),
+    progress_events = progress_events
+  )
+
+  shiny::testServer(application_env$build_excifinder_server(fake$service), {
+    session$setInputs(buscar = 0)
+    session$flushReact()
+    session$setInputs(pa = "ingredient", excipiente = "lactosa", buscar = 1)
+    session$flushReact()
+
+    expect_length(fake$calls$items, 1L)
+    expect_true(is.function(fake$calls$progress[[1L]]))
+    expect_s3_class(latest_result(), "excipient_search_result")
+    expect_identical(selected_product_id(), "AUTH:ui-001")
+  })
+})
+
 test_that("active ingredient autocomplete is debounced and ignores short queries", {
   search <- new_ui_fake_search_service(make_ui_search_result())
   suggestions <- new_ui_fake_suggestion_source(c("PARACETAMOL", "PAROXETINA"))

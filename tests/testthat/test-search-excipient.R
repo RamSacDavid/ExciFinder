@@ -136,6 +136,97 @@ test_that("zero discovered products is a valid empty result", {
   )
 })
 
+test_that("progress is optional, validated, and observational", {
+  fixture <- make_single_product_sources("Lactosa", "Contiene lactosa")
+  without_progress <- fixture$service$search_excipient("ingredient", "lactosa")
+  with_failing_progress <- fixture$service$search_excipient(
+    "ingredient",
+    "lactosa",
+    progress = function(...) stop("progress failure")
+  )
+
+  expect_identical(with_failing_progress, without_progress)
+  expect_error(
+    fixture$service$search_excipient("ingredient", "lactosa", progress = TRUE),
+    "`progress` must be NULL or a function."
+  )
+})
+
+test_that("progress reports discovered products, stable starts, and completion", {
+  products <- list(
+    make_search_product("c", "Charlie"),
+    make_search_product("a", "Alpha"),
+    make_search_product("b", "Beta")
+  )
+  ids <- vapply(products, domain_env$medicinal_product_id, character(1))
+  sources <- new_search_fake_sources(
+    products = products,
+    details = setNames(products, ids)
+  )
+  events <- list()
+  result <- make_search_service(sources)$search_excipient(
+    "ingredient",
+    "lactosa",
+    progress = function(event, current, total, product_id = NULL, product_name = NULL) {
+      events[[length(events) + 1L]] <<- list(
+        event = event,
+        current = current,
+        total = total,
+        product_id = product_id,
+        product_name = product_name
+      )
+    }
+  )
+
+  expect_length(result$results, 3L)
+  expect_identical(vapply(events, `[[`, character(1), "event"), c(
+    "products_discovered", "product_started", "product_started",
+    "product_started", "complete"
+  ))
+  expect_identical(
+    vapply(events, `[[`, integer(1), "current"),
+    c(0L, 0L, 1L, 2L, 3L)
+  )
+  expect_identical(vapply(events, `[[`, integer(1), "total"), rep(3L, 5L))
+  expect_identical(
+    vapply(events[2:4], `[[`, character(1), "product_name"),
+    c("Alpha", "Beta", "Charlie")
+  )
+})
+
+test_that("progress completes after product failures and for zero products", {
+  broken <- make_search_product("broken", "Broken")
+  usable <- make_search_product("usable", "Usable")
+  broken_id <- domain_env$medicinal_product_id(broken)
+  usable_id <- domain_env$medicinal_product_id(usable)
+  sources <- new_search_fake_sources(
+    products = list(broken, usable),
+    details = setNames(
+      list(application_env$new_port_absent(), usable),
+      c(broken_id, usable_id)
+    )
+  )
+  events <- list()
+  result <- make_search_service(sources)$search_excipient(
+    "ingredient", "lactosa",
+    progress = function(...) events[[length(events) + 1L]] <<- list(...)
+  )
+
+  expect_length(result$errors, 1L)
+  expect_identical(events[[length(events)]]$event, "complete")
+  expect_identical(events[[length(events)]]$current, 2L)
+  empty_events <- list()
+  make_search_service(new_search_fake_sources())$search_excipient(
+    "ingredient", "lactosa",
+    progress = function(...) empty_events[[length(empty_events) + 1L]] <<- list(...)
+  )
+  expect_identical(empty_events[[1L]], list(
+    event = "products_discovered", current = 0L, total = 0L,
+    product_id = NULL, product_name = NULL
+  ))
+  expect_identical(empty_events[[2L]]$event, "complete")
+})
+
 test_that("single-product factual outcomes preserve prior semantics", {
   cases <- list(
     A = make_single_product_sources("Lactosa", "Contiene lactosa"),
