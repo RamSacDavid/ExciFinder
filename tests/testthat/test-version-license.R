@@ -9,7 +9,7 @@ test_that("release version has one canonical production source", {
     envir = version_env
   )
 
-  expect_identical(version_env$excifinder_version(), "2.1.0")
+  expect_identical(version_env$excifinder_version(), "2.1.1")
   expect_identical(
     version_env$excifinder_http_user_agent(),
     paste0("ExciFinder/", version_env$excifinder_version())

@@ -73,7 +73,7 @@ test_that("external CSS keeps layout protection and semantic state colours", {
     "#a82d35", "#fbe9e9",
     "#287a45", "#e8f5ec",
     "#5f6870", "#eeeeee",
-    "#b85f00", "#fff0df"
+    "#ad5700", "#fff0df"
   )
 
   expect_match(css, "overflow-x: hidden", fixed = TRUE)
