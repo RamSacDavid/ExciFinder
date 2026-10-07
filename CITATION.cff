@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use ExciFinder in research or professional work, please cite the software using the metadata below."
+title: "ExciFinder"
+type: software
+authors:
+  - family-names: "Ramírez-Saco"
+    given-names: "David"
+    orcid: "https://orcid.org/0000-0003-3869-9534"
+version: "2.1.2"
+date-released: 2026-08-21
+repository-code: "https://github.com/RamSacDavid/ExciFinder"
+url: "https://qshhfj-d0ram0rez.shinyapps.io/ExciFinder/"
+license: "AGPL-3.0-only"
+abstract: >-
+  ExciFinder is an open-source R/Shiny application for deterministic and
+  traceable retrieval, organization, and verification of official information
+  on excipients in medicinal products authorized and marketed in Spain. It
+  queries CIMA/AEMPS sources, preserves source provenance, and reports factual
+  conclusions separately from verification coverage.
+keywords:
+  - excipients
+  - clinical pharmacology
+  - drug information
+  - medication safety
+  - regulatory science
+  - CIMA
+  - AEMPS
+  - R
+  - Shiny
+  - open science
