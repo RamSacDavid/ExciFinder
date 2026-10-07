@@ -1,6 +1,7 @@
 # ExciFinder
 
 [![test](https://github.com/RamSacDavid/ExciFinder/actions/workflows/test.yml/badge.svg)](https://github.com/RamSacDavid/ExciFinder/actions/workflows/test.yml)
+[![release](https://img.shields.io/github/v/release/RamSacDavid/ExciFinder)](https://github.com/RamSacDavid/ExciFinder/releases/latest)
 
 ## Probar ExciFinder
 
@@ -118,6 +119,14 @@ renv::status()
 ```
 
 GitHub Actions ejecuta la suite, comprueba `renv` y valida que `app.R` produce un objeto `shiny.appobj` en cada push o pull request dirigido a `main`.
+
+## Citación
+
+ExciFinder incluye metadatos de citación legibles por máquina en [`CITATION.cff`](CITATION.cff).
+
+Para trabajos reproducibles, cite la versión exacta de ExciFinder utilizada. La release estable actual es [v2.1.2](https://github.com/RamSacDavid/ExciFinder/releases/tag/v2.1.2).
+
+Hasta que se publique la primera versión archivada con DOI, la release correspondiente de GitHub debe utilizarse como referencia de versión. GitHub también puede generar formatos de cita a partir de `CITATION.cff` mediante la opción **Cite this repository**.
 
 ## Fuente y atribución
 
