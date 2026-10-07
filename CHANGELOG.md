@@ -2,11 +2,18 @@
 
 ## Unreleased
 
+## 2.1.3 - 2026-10-08
+
+- Añadidos metadatos de citación legibles por máquina mediante `CITATION.cff`.
+- Añadida guía de citación y visibilidad de la release estable en el README.
+- Preparada la integración de releases con Zenodo para archivado persistente y asignación de DOI.
+- Sin cambios en la política factual, el matching, las fuentes consultadas, la interfaz clínica ni el comportamiento de la aplicación.
+
 ## 2.1.2 - 2026-08-21
 
 - Añadido progreso visible durante la búsqueda y verificación de medicamentos.
 - La barra refleja el número real de medicamentos procesados respecto al total descubierto en CIMA.
-- Conservada sin cambios la política factual y la exhaustividad de la búsqueda, incluso para principios activos con un gran número de medicamentos.
+- Conservada sin cambios la política factual y la exhaustividad de la búsqueda, incluso para principios activos con un gran número de medicamentos evaluados.
 
 ## 2.1.1 - 2026-08-21
 
