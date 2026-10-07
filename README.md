@@ -124,7 +124,7 @@ GitHub Actions ejecuta la suite, comprueba `renv` y valida que `app.R` produce u
 
 ExciFinder incluye metadatos de citación legibles por máquina en [`CITATION.cff`](CITATION.cff).
 
-Para trabajos reproducibles, cite la versión exacta de ExciFinder utilizada. La release estable actual es [v2.1.2](https://github.com/RamSacDavid/ExciFinder/releases/tag/v2.1.2).
+Para trabajos reproducibles, cite la versión exacta de ExciFinder utilizada. La release estable actual es [v2.1.3](https://github.com/RamSacDavid/ExciFinder/releases/tag/v2.1.3).
 
 Hasta que se publique la primera versión archivada con DOI, la release correspondiente de GitHub debe utilizarse como referencia de versión. GitHub también puede generar formatos de cita a partir de `CITATION.cff` mediante la opción **Cite this repository**.
 
