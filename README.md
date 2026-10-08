@@ -2,6 +2,7 @@
 
 [![test](https://github.com/RamSacDavid/ExciFinder/actions/workflows/test.yml/badge.svg)](https://github.com/RamSacDavid/ExciFinder/actions/workflows/test.yml)
 [![release](https://img.shields.io/github/v/release/RamSacDavid/ExciFinder)](https://github.com/RamSacDavid/ExciFinder/releases/latest)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23225530.svg)](https://doi.org/10.5281/zenodo.23225530)
 
 ## Probar ExciFinder
 
@@ -124,9 +125,14 @@ GitHub Actions ejecuta la suite, comprueba `renv` y valida que `app.R` produce u
 
 ExciFinder incluye metadatos de citación legibles por máquina en [`CITATION.cff`](CITATION.cff).
 
-Para trabajos reproducibles, cite la versión exacta de ExciFinder utilizada. La release estable actual es [v2.1.3](https://github.com/RamSacDavid/ExciFinder/releases/tag/v2.1.3).
+ExciFinder está archivado de forma persistente en Zenodo.
 
-Hasta que se publique la primera versión archivada con DOI, la release correspondiente de GitHub debe utilizarse como referencia de versión. GitHub también puede generar formatos de cita a partir de `CITATION.cff` mediante la opción **Cite this repository**.
+- **Proyecto (todas las versiones):** [10.5281/zenodo.23225530](https://doi.org/10.5281/zenodo.23225530)
+- **Versión estable actual (v2.1.3):** [10.5281/zenodo.23225531](https://doi.org/10.5281/zenodo.23225531)
+
+Para trabajos reproducibles, cite el DOI específico de la versión de ExciFinder utilizada. Para referencias generales al proyecto, puede utilizarse el Concept DOI que agrupa todas las versiones.
+
+GitHub también puede generar formatos de cita a partir de `CITATION.cff` mediante la opción **Cite this repository**.
 
 ## Fuente y atribución
 

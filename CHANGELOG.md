@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Añadidos al README y a `CITATION.cff` los DOI de Zenodo para ExciFinder y la versión 2.1.3.
+
 ## 2.1.3 - 2026-10-08
 
 - Añadidos metadatos de citación legibles por máquina mediante `CITATION.cff`.
